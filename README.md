@@ -87,3 +87,7 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 凭据绝不写入仓库、MCP 配置或工具结果。平台数据库、认证判断、项目统计和付费规则属于平台服务；此仓库只实现公开协议客户端。
 
 参考：[MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk)、[系统凭据库](https://github.com/Brooooooklyn/keyring-node)、[Codex MCP](https://developers.openai.com/codex/mcp)、[Claude Code 插件](https://code.claude.com/docs/en/plugins-reference)、[设备授权协议](https://www.rfc-editor.org/rfc/rfc8628)。
+
+### 0.1.2 授权入口
+
+只使用 MCP 返回的完整授权链接。缺少请求的普通账户页面用于管理授权，不接受手填码，也不能直接批准连接。服务端必须提供完整链接；旧版本不再静默降级为短码。更新后重新构建、同步完整 Skill 并重启 MCP 进程。
