@@ -2,9 +2,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { PluginError, YrkieClient, parseOrigin } from './client.js';
 import { systemCredentials } from './credentials.js';
+import { parseArgs } from 'node:util';
 
 async function main() {
-  const origin=parseOrigin(process.env.YRKIE_ORIGIN || 'https://yrkie.com');
+  const {values}=parseArgs({options:{origin:{type:'string'}}});
+  const origin=parseOrigin(values.origin || process.env.YRKIE_ORIGIN || 'https://yrkie.com');
   const client=new YrkieClient(origin,systemCredentials(origin));
   const server=new McpServer({name:'yrkie',version:'0.1.0'});
   const tools=[

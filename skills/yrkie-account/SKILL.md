@@ -1,9 +1,21 @@
 ---
 name: yrkie-account
-description: Bind or disconnect a Yrkie account and query the current user's Library project count through the Yrkie MCP tools. Use for Yrkie account connections and project-count questions.
+description: Use Yrkie MCP tools to bind accounts and count Library projects; consult the Yrkie component Schema contract when explaining or preparing presentation JSON. Current MCP tools do not create, save, or export presentations.
 ---
 
 Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding and counting projects only.
+
+## Communication boundary
+
+All Yrkie platform operations go through the installed MCP tools. Do not call HTTP endpoints with shell commands, browser scripts, fetch, or another HTTP client. Do not inspect MCP implementation code to reconstruct requests or work around missing tools. If tools are unavailable, explain the installation requirement and stop platform operations. User-facing browser approval is the only manual authorization step.
+
+## Component Schema
+
+When the user asks about Yrkie presentation structure or requests a local Schema draft, read [the component authoring contract](references/component-schema.md). It defines the supported components, fields, layout constraints, and a complete example. It is a data authoring reference, not platform access or permission to create a project.
+
+For account and project-count questions, skip that reference. For a Schema draft, follow its JSON output rules only while producing that draft. Creation, editing, saving, rendering, and export require corresponding MCP tools; none are exposed in this version. Never claim a local JSON draft was saved or exported on Yrkie.
+
+## MCP workflow
 
 - For a project-count question, call `yrkie_project_count`. Report the returned count and explain, when relevant, that it covers all current Library project types and excludes archived/deleted projects. Never infer the count from chat history or turn an error into zero.
 - If unbound, call `yrkie_bind_account` when the user wants to connect. Show its verification URL and user code. The user logs in and approves on the Yrkie website; do not ask for passwords, cookies, access tokens, or database credentials, and do not approve on their behalf.
