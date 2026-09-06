@@ -36,6 +36,10 @@ test('binding never exposes secrets, honors interval, stores token, and returns 
   assert.equal((await s.client.count()).count,17);assert.equal(s.calls[2].options.headers.Authorization,`Bearer ${token}`);assert.equal(s.calls[2].options.redirect,'error');
 });
 test('count without a binding makes no request',async()=>{const s=setup();await assert.rejects(s.client.count(),{code:'not_bound'});assert.equal(s.calls.length,0);});
+test('sends application metadata when requesting a connection',async()=>{
+  const s=setup([device]); await s.client.begin('Codex');
+  assert.equal(s.calls[0].options.body.get('agent_name'),'Codex');
+});
 test('zero is a valid response but errors are not zero',async()=>{
   const s=setup([{count:0,scope:'library',asOf:'2026-09-06T00:00:00Z'},{status:503,body:{error:'temporarily_unavailable'}},{count:-1,scope:'library',asOf:'today'}]);await s.store.write(token);
   assert.equal((await s.client.count()).count,0);await assert.rejects(s.client.count(),{code:'temporarily_unavailable'});await assert.rejects(s.client.count(),{code:'invalid_response'});

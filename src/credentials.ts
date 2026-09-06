@@ -1,8 +1,9 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { PluginError, type Credentials } from './client.js';
 
-export function systemCredentials(origin:string):Credentials {
-  const service=`yrkie-agent-plugin:${origin}`;
+export function systemCredentials(origin:string, agentName?:string):Credentials {
+  const suffix=agentName ? ':'+createHash('sha256').update(agentName).digest('hex') : '';
+  const service=`yrkie-agent-plugin:${origin}${suffix}`;
   async function entry(name='account') {const {AsyncEntry}=await import('@napi-rs/keyring');return new AsyncEntry(service,name);}
   async function safe<T>(action:()=>Promise<T>):Promise<T> {try{return await action();}catch{throw new PluginError('secure_storage_unavailable');}}
   return {

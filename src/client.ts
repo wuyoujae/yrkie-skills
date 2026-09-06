@@ -65,11 +65,11 @@ export class YrkieClient {
     if(this.busy)throw new PluginError('operation_in_progress');this.busy=true;
     try{return await action();}finally{this.busy=false;}
   }
-  async begin() { return this.exclusive(async()=>{
+  async begin(agentName = 'AI Agent') { return this.exclusive(async()=>{
     if(await this.credentials.read())throw new PluginError('already_bound');
     await this.credentials.check();
     if(this.pending && this.now()<this.pending.expires)return this.bindingInfo();
-    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:'projects:count'}));
+    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:'projects:count',agent_name:agentName}));
     if(device.verification_uri!==this.origin+'/plugin/authorize')throw new PluginError('invalid_response');
     if(device.verification_uri_complete) {
       const expected=this.origin+'/plugin/authorize#request=';

@@ -28,3 +28,5 @@ For account and project-count questions, skip that reference. For a Schema draft
 - If the MCP tools are missing, use the repository README installation instructions. Reading this Skill alone does not connect to Yrkie.
 
 This plugin grants no editing, creation, exporting, subscription, or payment capability. Requests for those features should be described as unsupported by this version.
+
+The requesting application is identified automatically from the MCP handshake. Do not ask the user for an app name. The browser displays the server-stored application and permissions before approval. Each named agent maintains a separate binding; switching to another agent may require a new approval.
