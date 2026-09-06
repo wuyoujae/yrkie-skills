@@ -1,0 +1,11 @@
+{
+  "name": "yrkie",
+  "version": "0.1.0",
+  "description": "Bind your Yrkie account and query your project count.",
+  "author": {
+    "name": "Yrkie"
+  },
+  "repository": "https://github.com/wuyoujae/yrkie-skills",
+  "license": "MIT",
+  "skills": "./skills/"
+}
