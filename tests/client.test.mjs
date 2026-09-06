@@ -15,6 +15,19 @@ test('rejects insecure and credential-bearing origins',()=>{
   for(const u of ['http://example.com','https://u:p@yrkie.com','https://yrkie.com/other','https://yrkie.com/?x=1','file:///tmp'])assert.throws(()=>parseOrigin(u));
   assert.equal(parseOrigin('http://127.0.0.1:7622'),'http://127.0.0.1:7622');
 });
+test('returns a complete authorization link without exposing a manual code or device secret',async()=>{
+  const url='https://yrkie.com/plugin/authorize#request='+'c'.repeat(64);
+  const s=setup([{...device,verification_uri_complete:url}]);
+  const start=await s.client.begin();
+  assert.equal(start.verificationUrl,url);
+  assert.equal(start.userCode,undefined);
+  assert.ok(!JSON.stringify(start).includes(secret));
+});
+test('rejects altered complete authorization URLs',async()=>{
+  for(const url of ['https://evil.invalid/plugin/authorize#request='+'c'.repeat(64),'https://yrkie.com/plugin/authorize#request=bad']) {
+    await assert.rejects(setup([{...device,verification_uri_complete:url}]).client.begin(),{code:'invalid_response'});
+  }
+});
 test('binding never exposes secrets, honors interval, stores token, and returns real count',async()=>{
   const s=setup([device,{access_token:token,token_type:'Bearer',scope:'projects:count',expires_in:2592000},{count:17,scope:'library',asOf:'2026-09-06T00:00:00Z'}]);
   const start=await s.client.begin();assert.equal(start.userCode,device.user_code);assert.ok(!JSON.stringify(start).includes(secret));

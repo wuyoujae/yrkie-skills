@@ -21,7 +21,7 @@ export function parseOrigin(raw: string): string {
 }
 const deviceSchema = z.object({
   device_code: z.string().regex(/^[0-9a-f]{64}$/), user_code: z.string().regex(/^[A-F0-9]{5}-[A-F0-9]{5}$/),
-  verification_uri: z.string(), expires_in: z.number().int().min(1).max(600), interval: z.number().int().min(5).max(60),
+  verification_uri: z.string(), verification_uri_complete: z.string().optional(), expires_in: z.number().int().min(1).max(600), interval: z.number().int().min(5).max(60),
 });
 const tokenSchema = z.object({access_token: z.string().regex(/^yrk_plugin_[a-f0-9]{64}$/), token_type: z.literal('Bearer'), scope: z.literal('projects:count'), expires_in:z.number().int().positive()});
 const accountSchema = z.object({displayName:z.string().max(256),email:z.string().max(320),scope:z.literal('projects:count')});
@@ -71,12 +71,16 @@ export class YrkieClient {
     if(this.pending && this.now()<this.pending.expires)return this.bindingInfo();
     const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:'projects:count'}));
     if(device.verification_uri!==this.origin+'/plugin/authorize')throw new PluginError('invalid_response');
+    if(device.verification_uri_complete) {
+      const expected=this.origin+'/plugin/authorize#request=';
+      if(!device.verification_uri_complete.startsWith(expected) || !/^[0-9a-f]{64}$/.test(device.verification_uri_complete.slice(expected.length)))throw new PluginError('invalid_response');
+    }
     this.pending={device,expires:this.now()+device.expires_in*1000,next:this.now()+device.interval*1000,interval:device.interval};
     return this.bindingInfo();
   }); }
   private bindingInfo() {
     const p=this.pending!;
-    return {status:'authorization_pending',verificationUrl:p.device.verification_uri,userCode:p.device.user_code,expiresIn:Math.max(0,Math.ceil((p.expires-this.now())/1000)),retryAfter:Math.max(0,Math.ceil((p.next-this.now())/1000))};
+    return {status:'authorization_pending',verificationUrl:p.device.verification_uri_complete ?? p.device.verification_uri,...(p.device.verification_uri_complete ? {} : {userCode:p.device.user_code}),expiresIn:Math.max(0,Math.ceil((p.expires-this.now())/1000)),retryAfter:Math.max(0,Math.ceil((p.next-this.now())/1000))};
   }
   async finish() { return this.exclusive(async()=>{
     const p=this.pending;if(!p)throw new PluginError('binding_not_started');

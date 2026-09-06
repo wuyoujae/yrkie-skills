@@ -49,8 +49,8 @@ node scripts/install.mjs claude --origin http://127.0.0.1:7622
 
 对 Agent 说：**“绑定我的 Yrkie 账号，然后告诉我有多少个项目。”**
 
-1. Agent 展示官网验证地址和一次性绑定码。
-2. 在官网登录，核对当前账号，输入绑定码并确认。
+1. Agent 展示一个完整、短期有效的授权链接。
+2. 点击链接，在官网登录，核对当前账号并点击 Connect；无需复制绑定码。
 3. 返回 Agent 告知已确认；Agent 完成绑定并查询数量。
 
 不要把密码、网站 Cookie 或访问凭据贴进聊天。项目数与 Library 一致：统计所有项目类型，排除已删除和归档项目；平台错误不会返回假造的 0。
@@ -67,7 +67,7 @@ Skill 保存组件 Schema 和 MCP 工作流，所有平台操作必须通过 MCP
 
 | 工具 | 用途 |
 | --- | --- |
-| `yrkie_bind_account` | 开始绑定，返回官网地址和一次性确认码 |
+| `yrkie_bind_account` | 开始绑定，返回可点击的短期授权链接 |
 | `yrkie_complete_binding` | 单次检查授权结果；遵守返回的等待间隔 |
 | `yrkie_account_status` | 查看绑定状态和当前账号 |
 | `yrkie_project_count` | 查询当前账号的真实项目数量 |
