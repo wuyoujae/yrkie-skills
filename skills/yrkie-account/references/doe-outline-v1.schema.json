@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:yrkie:doe-outline:v1:external-authoring:1",
+  "$id": "urn:yrkie:doe-outline:v1:external-authoring:2",
   "title": "Yrkie DOE Outline V1 — external authoring edition 1",
   "description": "The existing DOE V1 content format. Server semantic and security validation is also required. Byte limits are UTF-8; x-maxUtf8Bytes documents constraints outside standard JSON Schema.",
   "type": "object",
@@ -30,7 +30,7 @@
             "description": "Complete page content as ordered strings: title, conclusion, facts, paragraphs, numbers and units, chart/table descriptions, references or typed image plans. Prefer a plain-text page title first. No nested component objects.",
             "items": {
               "type": "string", "minLength": 1, "maxLength": 8000, "x-maxUtf8Bytes": 8000,
-              "description": "Nonblank, trimmed plain text, at most 8000 UTF-8 bytes. Internal LF and tabs are permitted. HTML/SVG/scripts, active URI schemes, private asset references and unsafe control characters are rejected. A standalone image plan may use GENRATEIMG[type=content|decorative,ratio=1:1|4:3|3:4|4:5|16:9|9:16](nonempty prompt); at most 16 image plans per outline. Plans do not execute during creation."
+              "description": "Nonblank, trimmed plain text, at most 8000 UTF-8 bytes. Internal LF and tabs are permitted. HTML/SVG/scripts, active URI schemes, unsafe control characters and private references outside the complete image-reference contract are rejected. A standalone yrkie-asset-data:// reference with exactly 64 lowercase hex characters is accepted only when the server verifies its current user/project binding and availability; at most 256 placements. A standalone image plan may use GENRATEIMG[type=content|decorative,ratio=1:1|4:3|3:4|4:5|16:9|9:16](nonempty prompt); at most 16 image plans per outline. Plans do not execute during creation."
             }
           }
         }

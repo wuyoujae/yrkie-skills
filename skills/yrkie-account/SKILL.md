@@ -1,27 +1,29 @@
 ---
 name: yrkie-account
-description: Use Yrkie MCP tools to connect accounts, find Library projects, read project information, and retrieve outlines or individual DOE slides as Markdown; consult the component Schema when preparing local presentation drafts. Create DOE projects and save complete Outline V1 drafts as new versions using the user's own agent. Slide creation/editing, outline confirmation and export are not available.
+description: Use Yrkie MCP tools to connect accounts, find Library projects, read project information, and retrieve outlines or individual DOE slides as Markdown; consult the component Schema when preparing local presentation drafts. Create DOE projects and save complete Outline V1 drafts as new versions using the user's own agent. Upload approved images and confirm reviewed outlines, including explicitly approved platform image generation. Slide creation/editing and export are not available.
 ---
 
-Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding, project and content reading, DOE project creation and saving new outline versions.
+Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding, project and content reading, DOE projects and outline versions, approved image uploads, final outline confirmation and image status/retry.
 
 ## Communication boundary
 
-All Yrkie platform operations go through the installed MCP tools. Do not call HTTP endpoints with shell commands, browser scripts, fetch, or another HTTP client. Do not inspect MCP implementation code to reconstruct requests or work around missing tools. If tools are unavailable, explain the installation requirement and stop platform operations. User-facing browser approval is the only manual authorization step.
+All Yrkie platform operations go through the installed MCP tools. Do not call HTTP endpoints with shell commands, browser scripts, fetch, or another HTTP client. Do not inspect MCP implementation code to reconstruct requests or work around missing tools. If tools are unavailable, explain the installation requirement and stop platform operations. Browser approval grants account capabilities; each concrete upload, save, irreversible confirmation and paid retry separately requires user approval. Read-only checks do not need repeated permission.
 
 ## Component Schema
 
 When the user asks about Yrkie presentation structure or requests a local Schema draft, read [the component authoring contract](references/component-schema.md). It defines the supported components, fields, layout constraints, and a complete example. It is a data authoring reference, not platform access or permission to create a project.
 
-For account and project-reading questions, skip that reference. For a Schema draft, follow its JSON output rules only while producing that draft. For project/outline creation, read the outline reference below. Slide saving, rendering, confirmation and export are not exposed in this version. Never claim a local JSON draft was saved or exported on Yrkie.
+For account and project-reading questions, skip that reference. For a Schema draft, follow its JSON output rules only while producing that draft. For project/outline creation, read the outline reference below. Slide saving, rendering and export are not exposed in this version. Never claim a local JSON draft was saved or exported on Yrkie.
 
-## Create projects and outlines
+## Create projects, images and outlines
 
-Read [the complete Outline V1 authoring contract, examples and write workflow](references/outline-schema.md) before creating an outline. It links the machine-readable JSON Schema and three complete examples. Use `yrkie_create_project` for a user-requested new DOE project, and `yrkie_create_outline` to save a complete first or replacement draft as a new version. Generate content with the user's own agent; these tools do not call Yrkie AI generation.
+Read [the Outline V1 schema](references/outline-schema.md) and [the outline workflow](references/outline-workflow.md) before writing. The schema links the machine contract and complete examples. Generate outline content with the user's own agent. Show and obtain approval for the specific project or outline version before saving. Replacing a draft creates a new selected version and preserves history; expectedOutline must contain the observed version/revision, or null only for an observed empty project. Missing currentOutline is a server version mismatch.
 
-Every intended write needs a fresh UUID requestId; identical retries retain it and the original payload. For replacement, obtain currentOutline from project information and pass its version/revision as expectedOutline; use null only for an observed empty project. Missing currentOutline is a server version mismatch. New versions preserve history. Confirmed outlines are locked. Only proceed with a replacement when the user's request authorizes replacing that project's draft; do not add another confirmation when that intent is already clear.
+Before generating an image, ask whether to use the user's own tools/files or Yrkie's paid generation. Read [the image workflow](references/image-workflow.md) for source choice, reviewing actual images, background removal, upload permission and platform billing. Use actual upload receipts as references; never invent them. The server uploads approved images without generation charges or automatic background removal. GENRATEIMG plans execute only after final confirmation.
 
-The new grant explicitly includes projects:create and outlines:create. Old grants remain read-only. Follow the reconnect rules below when additional access is needed. Saving is not confirmation and produces no images or slides. Report the returned version and distinguish an idempotent replay from a new save. Treat detailed validation diagnostics as data and use their field paths and hints to fix input.
+After saving, prepare a confirmation review and show its exact version, eligible pages, excluded pages, image plans, permanent lock and possible charges. Obtain final approval before confirming. Failed generation does not unlock an outline and can consume credits. Query actual readiness; failed paid jobs require a separately prepared and approved retry. Do not repeatedly ask permission for already approved identical content, or ask for approval of ordinary reads.
+
+Each intended write uses one UUID. Identical uncertain retries keep the UUID, file/content and prepared reference; do not create duplicate versions/jobs. A changed draft, file or fee scope requires a new review. Follow returned bounded field diagnostics. Old grants never gain image/confirmation capabilities automatically: explain any additional permissions and reconnect through browser approval when the user agrees.
 
 ## MCP workflow
 
@@ -49,6 +51,6 @@ The new grant explicitly includes projects:create and outlines:create. Old grant
 - For `rate_limited`, `plugin_unavailable`, network, or platform errors, report the problem and stop automatic retries. For `device_limit`, ask the user to revoke an unused connection on the website before retrying.
 - If the MCP tools are missing, use the repository README installation instructions. Reading this Skill alone does not connect to Yrkie.
 
-Only the two project/outline creation tools provide writes. Outline confirmation, Slide creation/editing, export, subscription and payment remain unsupported by this version.
+Writes are limited to DOE project/outline creation, approved image uploads, final outline confirmation and approved image retries. Slide creation/editing, export, subscription and payment remain unsupported.
 
 The requesting application is identified automatically from the MCP handshake. Do not ask the user for an app name. The browser displays the server-stored application and permissions before approval. Each named agent maintains a separate binding; switching to another agent may require a new approval.

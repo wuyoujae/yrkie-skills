@@ -1,3 +1,9 @@
+# 0.5.0 图片上传与大纲确认
+
+新增 `yrkie_upload_project_image`、`yrkie_prepare_outline_confirmation`、`yrkie_confirm_outline`、`yrkie_outline_image_status`、`yrkie_retry_outline_images`。配套服务器需完成 Core v52 迁移并支持图片与确认接口；旧连接必须经用户同意重新绑定以取得新权限。
+
+先选图片来源，再审阅并批准图片上传、完整大纲保存和最终确认。外部图片上传不生图、不抠图、不扣 AI 积分；平台 GENRATEIMG 在确认后按现有规则生成并收费。确认永久锁定大纲，失败调用也可能收费，重试需单独批准。详情见 Skill 中独立的 Outline Schema、图片工作流和大纲工作流。本次不提供 Slide 创建/编辑。
+
 ## 0.4.0：创建 DOE 项目与 Outline
 
 新增 `yrkie_create_project` 与 `yrkie_create_outline`。用户自己的 Agent 按 Skill 内完整 Outline V1 Schema 生成内容，平台严格校验并保存；替换草稿会新增版本、保留历史。成功请求支持 UUID 幂等重试和版本冲突检查。
@@ -8,7 +14,7 @@
 
 在支持本地 stdio MCP 的 Agent 中绑定 Yrkie 账号，查询项目数量、项目信息和 Markdown 大纲。MIT 开源，通信层不依赖 Codex、Claude Code 或任何模型 SDK。
 
-当前版本 0.4.0 提供账号连接、项目检索、项目概况、Markdown 大纲和 DOE 单页 Slide 内容读取。同时支持创建 DOE 项目、保存或整体替换未确认 Outline（新增版本并保留历史）。确认、Slide 写入/导出及订阅权益不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
+当前版本 0.5.0 提供 16 个工具，支持账号连接、项目检索、内容读取、DOE 项目/大纲创建、私有图片上传、大纲预检查与最终确认、图片状态和显式重试。Slide 写入/导出及订阅支付不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
 
 ## 从源码安装
 
@@ -24,7 +30,7 @@ node scripts/mcp-config.mjs
 
 最后一行输出通用 MCP JSON：把 `mcpServers.yrkie` 的 command 和 args 填入 Agent 的 MCP 配置。客户端的配置文件位置、外层字段名可能不同，以其 MCP 设置界面为准；没有统一的跨客户端插件安装目录。
 
-Skill 单独安装：把完整 `skills/yrkie-account/` 文件夹（包括 `references/`）复制到目标 Agent 的 Skill 目录，或者通过它支持的本地 Skill 导入功能加载。只支持 MCP、不支持 Skill 的客户端仍然可以使用十一个工具，但不会自动加载 Schema 教程。
+Skill 单独安装：把完整 `skills/yrkie-account/` 文件夹（包括 `references/`）复制到目标 Agent 的 Skill 目录，或者通过它支持的本地 Skill 导入功能加载。只支持 MCP、不支持 Skill 的客户端仍然可以使用十六个工具，但不会自动加载 Schema 教程。
 
 本地开发时直接把 origin 写入生成的启动参数，重启 Agent 即可，不需要继承终端环境变量：
 
@@ -57,7 +63,8 @@ node scripts/install.mjs claude --origin http://127.0.0.1:7622
 2. Agent 读取 Skill 内 `references/outline-schema.md`，按原有 DOE V1 格式生成完整大纲。
 3. 读取项目概况的 `currentOutline`，无稿传 `expectedOutline: null`，有草稿传其中 version/revision。
 4. 调用 `yrkie_create_outline(projectRef, requestId, expectedOutline, outline)`，成功返回新版本、revision 和当前状态。已确认稿拒绝替换。
-5. 网络失败保留原 UUID 与完整参数重试；字段错误按 JSON Pointer、code 和 hint 修正。服务端失败不写入部分内容，也不消耗请求 ID。
+5. 按独立图片工作流先确定来源与抠图需求，取得最终图片上传同意；保存大纲后准备确认，展示页数范围、锁定和费用，经批准后最终确认。
+6. 网络失败保留原 UUID 与完整参数重试；字段错误按 JSON Pointer、code 和 hint 修正。服务端失败不写入部分内容，也不消耗请求 ID。
 
 ## 使用
 
@@ -120,10 +127,10 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 
 MCP 自动从客户端初始化握手读取应用名；用户无需填写名称或确认码。服务器保存名称并签发一次性链接，网页要求登录后读取待授权请求，显示“是否授权 Codex / Claude Code / 对应 Agent”，点击授权后 MCP 才能兑换凭据。过期或已用链接不能再授权。名称来自客户端自报信息，用于展示而非厂商身份认证。无法提供名称的客户端显示 AI Agent。
 
-### 0.3.0 DOE 单页读取（历史功能，0.4.0 保留）
+### 0.3.0 DOE 单页读取（历史功能，后续版本保留）
 
 可以说“阅读「季度复盘」第 3 页的 Slide 内容”。返回项目标题、页码、总页数、稿件 revision 和 Markdown；按页与组件分组保留正文、条目、表格、图表数值、代码和公式。图片只提供已有说明，未知组件明确标记省略，不读取演讲备注，不返回原 JSON 或素材地址。
 
 当前仅 DOE 项目支持，其他项目返回 slide_format_unsupported。多页读取时，将首个响应的 revision 作为后续调用的 expectedRevision；稿件变化返回 slide_revision_conflict，不能混合不同版本。授权不足需用户同意重新连接；重新连接后须重新检索项目取得新的引用。每页 Markdown 最多 120 KB UTF-8，内容过大或损坏会明确失败。
 
-更新源码后执行 npm ci 与 npm run build，同步整个 Skill 目录并重启 MCP。0.4.0 的创建功能必须配合支持 projects:create / outlines:create 的 v51 平台服务；旧平台需先升级。本地实现和生产部署分别验收，不因源码发布而自动开放生产能力。
+更新源码后执行 npm ci 与 npm run build，同步整个 Skill 目录并重启 MCP。0.5.0 的完整功能需要 v52 平台服务和新图片/确认权限；旧平台需先升级。本地实现和生产部署分别验收，不因源码发布而自动开放生产能力。

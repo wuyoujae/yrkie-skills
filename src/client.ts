@@ -1,3 +1,5 @@
+import { readApprovedImage,LocalImageError } from './localImage.js';
+import { imageTypeSchema,imageRatioSchema,confirmationRefSchema,uploadResultSchema,preparationSchema,confirmationResultSchema,imageStatusSchema } from './imageContracts.js';
 import * as z from 'zod';
 
 export class PluginError extends Error {
@@ -26,7 +28,9 @@ const deviceSchema = z.object({
 const READ_SCOPE = 'projects:count projects:read outlines:read';
 const SLIDE_SCOPE = READ_SCOPE + ' slides:read';
 const CREATE_SCOPE = SLIDE_SCOPE + ' projects:create outlines:create';
-const scopeSchema = z.enum(['projects:count', READ_SCOPE, SLIDE_SCOPE, CREATE_SCOPE]);
+const ASSET_SCOPE=CREATE_SCOPE+' images:read images:create outlines:confirm';
+const IMAGE_SCOPE=ASSET_SCOPE+' images:generate';
+const scopeSchema = z.enum(['projects:count', READ_SCOPE, SLIDE_SCOPE, CREATE_SCOPE, ASSET_SCOPE, IMAGE_SCOPE]);
 const tokenSchema = z.object({access_token: z.string().regex(/^yrk_plugin_[a-f0-9]{64}$/), token_type: z.literal('Bearer'), scope: scopeSchema, expires_in:z.number().int().positive()});
 const accountSchema = z.object({displayName:z.string().max(256),email:z.string().max(320),scope:scopeSchema});
 const countSchema = z.object({count:z.number().int().nonnegative().safe(),scope:z.literal('library'),asOf:z.string().datetime({offset:true})});
@@ -39,7 +43,7 @@ export const requestIdSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][
 const infoSchema = z.object({projectRef:projectRefSchema,title:titleSchema,projectType:z.enum(['presentation','social-card','visual','other']),slideCount:z.number().int().nonnegative().safe(),outlinePageCount:z.number().int().min(0).max(200).nullable(),outlineStatus:z.enum(['none','draft','confirmed']),currentOutline:currentOutlineSchema.optional()});
 const outlineSchema = z.object({projectRef:projectRefSchema,title:titleSchema,markdown:z.string().max(120000),currentOutline:currentOutlineSchema.optional()});
 const diagnosticSchema = z.object({message:z.string().max(800),issues:z.array(z.object({path:z.string().max(160).regex(/^(\/[A-Za-z0-9_]+)*$/),code:z.string().max(60).regex(/^[a-z_]+$/),message:z.string().max(800),hint:z.string().max(1000)})).max(50),truncated:z.boolean(),line:z.number().int().nonnegative().optional(),column:z.number().int().nonnegative().optional()});
-const knownErrors = new Set(['authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable','insufficient_scope','project_reference_expired_or_unavailable','reference_capacity_reached','project_search_too_broad','outline_not_found','outline_unavailable','outline_too_large','slide_format_unsupported','slides_not_found','slide_page_out_of_range','slide_unavailable','slide_too_large','slide_revision_conflict','invalid_request']);
+const knownErrors = new Set(['asset_unavailable','asset_metadata_conflict','image_capacity_reached','upload_in_progress','images_not_failed','confirmation_expired','confirmation_changed','paid_generation_not_approved','insufficient_credits','image_service_unavailable','confirmation_preview_too_large','authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable','insufficient_scope','project_reference_expired_or_unavailable','reference_capacity_reached','project_search_too_broad','outline_not_found','outline_unavailable','outline_too_large','slide_format_unsupported','slides_not_found','slide_page_out_of_range','slide_unavailable','slide_too_large','slide_revision_conflict','invalid_request']);
 for(const code of ['validation_failed','invalid_json','request_too_large','outline_conflict','outline_confirmed','idempotency_conflict','project_format_unsupported'])knownErrors.add(code);
 
 export class YrkieClient {
@@ -49,12 +53,12 @@ export class YrkieClient {
   constructor(origin: string, private readonly credentials: Credentials, private readonly fetcher: typeof fetch = fetch, private readonly now = Date.now) {
     this.origin = parseOrigin(origin);
   }
-  private async request(path: string, form?: Record<string,string>, token?: string, method = 'GET', maxBytes = 16384, payload?: Record<string,unknown>): Promise<unknown> {
+  private async request(path: string, form?: Record<string,string>, token?: string, method = 'GET', maxBytes = 16384, payload?: Record<string,unknown>, multipart?:FormData): Promise<unknown> {
     try {
       const response = await this.fetcher(this.origin + path, {
-        method: form ? 'POST' : method, redirect:'error', signal:AbortSignal.timeout(15000),
+        method: form ? 'POST' : method, redirect:'error', signal:AbortSignal.timeout(multipart ? 120000 : 15000),
         headers: {Accept:'application/json', ...(form ? {'Content-Type':'application/x-www-form-urlencoded'} : payload ? {'Content-Type':'application/json'} : {}), ...(token ? {Authorization:`Bearer ${token}`} : {})},
-        body: form ? new URLSearchParams(form) : payload ? JSON.stringify(payload) : undefined,
+        body: multipart ?? (form ? new URLSearchParams(form) : payload ? JSON.stringify(payload) : undefined),
       });
       // Stream with a hard size limit; never return raw platform errors to the model.
       const reader=response.body?.getReader();
@@ -68,7 +72,7 @@ export class YrkieClient {
         const data=value as Record<string,unknown>;
         const code=data && (data.error ?? data.code);
         const safeCode=typeof code==='string' && knownErrors.has(code) ? code : response.status===401?'invalid_token':response.status===429?'rate_limited':'platform_error';
-        const diagnostics=payload ? diagnosticSchema.safeParse(data) : undefined;
+        const diagnostics=(payload || multipart) ? diagnosticSchema.safeParse(data) : undefined;
         throw new PluginError(safeCode, diagnostics?.success && safeCode===code ? diagnostics.data : undefined);
       }
       return value;
@@ -85,7 +89,7 @@ export class YrkieClient {
     if(await this.credentials.read())throw new PluginError('already_bound');
     await this.credentials.check();
     if(this.pending && this.now()<this.pending.expires)return this.bindingInfo();
-    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:CREATE_SCOPE,agent_name:agentName}));
+    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:IMAGE_SCOPE,agent_name:agentName}));
     if(device.verification_uri!==this.origin+'/plugin/authorize')throw new PluginError('invalid_response');
     if(device.verification_uri_complete) {
       const expected=this.origin+'/plugin/authorize#request=';
@@ -169,6 +173,35 @@ export class YrkieClient {
     const result=this.parse(schema,await this.request(`/api/plugin/v1/projects/${ref}/outline`,undefined,await this.token(),'POST',131072,payload));
     if(result.requestId!==requestId || result.projectRef!==ref)throw new PluginError('invalid_response');
     return result;
+  }
+  async uploadImage(projectRef:string,requestId:string,localFilePath:string,imageType:string,ratio:string) {
+    const ref=this.parse(projectRefSchema,projectRef);this.parse(requestIdSchema,requestId);
+    this.parse(imageTypeSchema,imageType);this.parse(imageRatioSchema,ratio);
+    const token=await this.token();
+    let image;try{image=await readApprovedImage(localFilePath);}catch(error){if(error instanceof LocalImageError)throw new PluginError(error.code);throw error;}
+    const form=new FormData();form.append('metadata',JSON.stringify({requestId,imageType,ratio}));form.append('image',new Blob([new Uint8Array(image.bytes)],{type:image.mime}),image.name);
+    const result=this.parse(uploadResultSchema,await this.request(`/api/plugin/v1/projects/${ref}/images`,undefined,token,'POST',131072,undefined,form));
+    if(result.requestId!==requestId||result.imageType!==imageType||result.ratio!==ratio)throw new PluginError('invalid_response');
+    return result;
+  }
+  async prepareOutline(projectRef:string,expectedOutline:z.infer<typeof expectedOutlineSchema>,action='confirm') {
+    const ref=this.parse(projectRefSchema,projectRef);this.parse(expectedOutlineSchema.unwrap(),expectedOutline);
+    this.parse(z.enum(['confirm','retry_images']),action);
+    const result=this.parse(preparationSchema,await this.request(`/api/plugin/v1/projects/${ref}/outline/prepare-confirmation`,undefined,await this.token(),'POST',131072,{expectedOutline,action}));
+    if(result.action!==action||result.outlineVersion!==expectedOutline!.version||result.revision!==expectedOutline!.revision)throw new PluginError('invalid_response');
+    return result;
+  }
+  async confirmOutline(projectRef:string,requestId:string,confirmationRef:string,acknowledgeLock:boolean,acknowledgePaidGeneration:boolean,retry=false) {
+    const ref=this.parse(projectRefSchema,projectRef);this.parse(requestIdSchema,requestId);this.parse(confirmationRefSchema,confirmationRef);
+    this.parse(z.boolean(),acknowledgePaidGeneration);if(!retry)this.parse(z.literal(true),acknowledgeLock);
+    const payload=retry?{requestId,confirmationRef,acknowledgePaidGeneration}:{requestId,confirmationRef,acknowledgeLock,acknowledgePaidGeneration};
+    const result=this.parse(confirmationResultSchema,await this.request(`/api/plugin/v1/projects/${ref}/outline/${retry?'retry-images':'confirm'}`,undefined,await this.token(),'POST',131072,payload));
+    if(result.requestId!==requestId)throw new PluginError('invalid_response');return result;
+  }
+  async outlineImages(projectRef:string,outlineVersion:number) {
+    const ref=this.parse(projectRefSchema,projectRef);this.parse(z.number().int().positive().safe(),outlineVersion);
+    const result=this.parse(imageStatusSchema,await this.request(`/api/plugin/v1/projects/${ref}/outline/${outlineVersion}/images`,undefined,await this.token(),'GET',131072));
+    if(result.outlineVersion!==outlineVersion)throw new PluginError('invalid_response');return result;
   }
   async logout() {return this.exclusive(async()=>{
     const token=await this.token();
