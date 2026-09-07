@@ -11,7 +11,7 @@ test('generic configuration starts a standard MCP client without agent-specific 
   const client=new Client({name:'generic-agent-test',version:'1.0.0'});
   try {
     await client.connect(new StdioClientTransport({...config,env:{YRKIE_ORIGIN:'invalid-env-origin'},stderr:'pipe'}));
-    assert.equal((await client.listTools()).tools.length,9);
+    assert.equal((await client.listTools()).tools.length,11);
   } finally {await client.close();}
 });
 

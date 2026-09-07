@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 export class PluginError extends Error {
-  constructor(readonly code: string) { super(code); }
+  constructor(readonly code: string, readonly details?: Record<string, unknown>) { super(code); }
 }
 export interface Credentials {
   read(): Promise<string | null>;
@@ -25,16 +25,22 @@ const deviceSchema = z.object({
 });
 const READ_SCOPE = 'projects:count projects:read outlines:read';
 const SLIDE_SCOPE = READ_SCOPE + ' slides:read';
-const scopeSchema = z.enum(['projects:count', READ_SCOPE, SLIDE_SCOPE]);
+const CREATE_SCOPE = SLIDE_SCOPE + ' projects:create outlines:create';
+const scopeSchema = z.enum(['projects:count', READ_SCOPE, SLIDE_SCOPE, CREATE_SCOPE]);
 const tokenSchema = z.object({access_token: z.string().regex(/^yrk_plugin_[a-f0-9]{64}$/), token_type: z.literal('Bearer'), scope: scopeSchema, expires_in:z.number().int().positive()});
 const accountSchema = z.object({displayName:z.string().max(256),email:z.string().max(320),scope:scopeSchema});
 const countSchema = z.object({count:z.number().int().nonnegative().safe(),scope:z.literal('library'),asOf:z.string().datetime({offset:true})});
 export const projectRefSchema = z.string().regex(/^prj_[a-f0-9]{64}$/);
 const titleSchema = z.string().max(8192);
 const projectsSchema = z.object({projects:z.array(z.object({projectRef:projectRefSchema,title:titleSchema,expiresAt:z.string().datetime({offset:true})})).max(50),nextOffset:z.number().int().min(0).max(100000).nullable()});
-const infoSchema = z.object({projectRef:projectRefSchema,title:titleSchema,projectType:z.enum(['presentation','social-card','visual','other']),slideCount:z.number().int().nonnegative().safe(),outlinePageCount:z.number().int().min(0).max(200).nullable(),outlineStatus:z.enum(['none','draft','confirmed'])});
-const outlineSchema = z.object({projectRef:projectRefSchema,title:titleSchema,markdown:z.string().max(120000)});
+const currentOutlineSchema = z.object({version:z.number().int().positive().safe(),revision:z.number().int().positive().safe(),status:z.enum(['draft','confirmed'])}).nullable();
+export const expectedOutlineSchema = z.object({version:z.number().int().positive().safe(),revision:z.number().int().positive().safe()}).strict().nullable();
+export const requestIdSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+const infoSchema = z.object({projectRef:projectRefSchema,title:titleSchema,projectType:z.enum(['presentation','social-card','visual','other']),slideCount:z.number().int().nonnegative().safe(),outlinePageCount:z.number().int().min(0).max(200).nullable(),outlineStatus:z.enum(['none','draft','confirmed']),currentOutline:currentOutlineSchema.optional()});
+const outlineSchema = z.object({projectRef:projectRefSchema,title:titleSchema,markdown:z.string().max(120000),currentOutline:currentOutlineSchema.optional()});
+const diagnosticSchema = z.object({message:z.string().max(800),issues:z.array(z.object({path:z.string().max(160).regex(/^(\/[A-Za-z0-9_]+)*$/),code:z.string().max(60).regex(/^[a-z_]+$/),message:z.string().max(800),hint:z.string().max(1000)})).max(50),truncated:z.boolean(),line:z.number().int().nonnegative().optional(),column:z.number().int().nonnegative().optional()});
 const knownErrors = new Set(['authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable','insufficient_scope','project_reference_expired_or_unavailable','reference_capacity_reached','project_search_too_broad','outline_not_found','outline_unavailable','outline_too_large','slide_format_unsupported','slides_not_found','slide_page_out_of_range','slide_unavailable','slide_too_large','slide_revision_conflict','invalid_request']);
+for(const code of ['validation_failed','invalid_json','request_too_large','outline_conflict','outline_confirmed','idempotency_conflict','project_format_unsupported'])knownErrors.add(code);
 
 export class YrkieClient {
   readonly origin: string;
@@ -43,12 +49,12 @@ export class YrkieClient {
   constructor(origin: string, private readonly credentials: Credentials, private readonly fetcher: typeof fetch = fetch, private readonly now = Date.now) {
     this.origin = parseOrigin(origin);
   }
-  private async request(path: string, form?: Record<string,string>, token?: string, method = 'GET', maxBytes = 16384): Promise<unknown> {
+  private async request(path: string, form?: Record<string,string>, token?: string, method = 'GET', maxBytes = 16384, payload?: Record<string,unknown>): Promise<unknown> {
     try {
       const response = await this.fetcher(this.origin + path, {
         method: form ? 'POST' : method, redirect:'error', signal:AbortSignal.timeout(15000),
-        headers: {Accept:'application/json', ...(form ? {'Content-Type':'application/x-www-form-urlencoded'} : {}), ...(token ? {Authorization:`Bearer ${token}`} : {})},
-        body: form ? new URLSearchParams(form) : undefined,
+        headers: {Accept:'application/json', ...(form ? {'Content-Type':'application/x-www-form-urlencoded'} : payload ? {'Content-Type':'application/json'} : {}), ...(token ? {Authorization:`Bearer ${token}`} : {})},
+        body: form ? new URLSearchParams(form) : payload ? JSON.stringify(payload) : undefined,
       });
       // Stream with a hard size limit; never return raw platform errors to the model.
       const reader=response.body?.getReader();
@@ -61,7 +67,9 @@ export class YrkieClient {
       if (!response.ok) {
         const data=value as Record<string,unknown>;
         const code=data && (data.error ?? data.code);
-        throw new PluginError(typeof code==='string' && knownErrors.has(code) ? code : response.status===401?'invalid_token':response.status===429?'rate_limited':'platform_error');
+        const safeCode=typeof code==='string' && knownErrors.has(code) ? code : response.status===401?'invalid_token':response.status===429?'rate_limited':'platform_error';
+        const diagnostics=payload ? diagnosticSchema.safeParse(data) : undefined;
+        throw new PluginError(safeCode, diagnostics?.success && safeCode===code ? diagnostics.data : undefined);
       }
       return value;
     } catch(error) { if(error instanceof PluginError)throw error; throw new PluginError('network_error'); }
@@ -77,7 +85,7 @@ export class YrkieClient {
     if(await this.credentials.read())throw new PluginError('already_bound');
     await this.credentials.check();
     if(this.pending && this.now()<this.pending.expires)return this.bindingInfo();
-    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:SLIDE_SCOPE,agent_name:agentName}));
+    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:CREATE_SCOPE,agent_name:agentName}));
     if(device.verification_uri!==this.origin+'/plugin/authorize')throw new PluginError('invalid_response');
     if(device.verification_uri_complete) {
       const expected=this.origin+'/plugin/authorize#request=';
@@ -142,6 +150,24 @@ export class YrkieClient {
     const schema=z.object({projectRef:projectRefSchema,title:titleSchema,pageNumber:z.number().int().positive().safe(),totalSlides:z.number().int().min(1).max(200),revision:z.number().int().positive().safe(),markdown:z.string().refine(v=>Buffer.byteLength(v,'utf8')<=120000)});
     const result=this.parse(schema,await this.request(`/api/plugin/v1/projects/${ref}/slides/${page}${query}`,undefined,await this.token(),'GET',1048576));
     if(result.projectRef!==ref || result.pageNumber!==page || page>result.totalSlides || (expectedRevision!==undefined && result.revision!==expectedRevision))throw new PluginError('invalid_response');
+    return result;
+  }
+  async createProject(title:string, requestId:string, projectType='presentation.doe') {
+    const payload={title,requestId,projectType};
+    this.parse(requestIdSchema,requestId);
+    const schema=z.object({requestId:requestIdSchema,projectRef:projectRefSchema,expiresAt:z.string().datetime({offset:true}),projectType:z.literal('presentation.doe'),title:titleSchema,status:z.literal('created'),replayed:z.boolean(),currentOutline:currentOutlineSchema});
+    const result=this.parse(schema,await this.request('/api/plugin/v1/projects',undefined,await this.token(),'POST',131072,payload));
+    if(result.requestId!==requestId || result.title!==title)throw new PluginError('invalid_response');
+    return result;
+  }
+  async createOutline(projectRef:string, requestId:string, expectedOutline:z.infer<typeof expectedOutlineSchema>, outline:unknown) {
+    const ref=this.parse(projectRefSchema,projectRef);
+    this.parse(requestIdSchema,requestId); this.parse(expectedOutlineSchema,expectedOutline);
+    const payload={requestId,expectedOutline,outline};
+    if(Buffer.byteLength(JSON.stringify(payload),'utf8')>2*1024*1024)throw new PluginError('request_too_large');
+    const schema=z.object({requestId:requestIdSchema,projectRef:projectRefSchema,version:z.number().int().positive().safe(),revision:z.number().int().positive().safe(),pageCount:z.number().int().min(1).max(100),title:titleSchema,status:z.literal('created'),replayed:z.boolean(),currentOutline:currentOutlineSchema});
+    const result=this.parse(schema,await this.request(`/api/plugin/v1/projects/${ref}/outline`,undefined,await this.token(),'POST',131072,payload));
+    if(result.requestId!==requestId || result.projectRef!==ref)throw new PluginError('invalid_response');
     return result;
   }
   async logout() {return this.exclusive(async()=>{

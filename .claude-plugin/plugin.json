@@ -1,7 +1,7 @@
 {
   "name": "yrkie",
-  "version": "0.3.0",
-  "description": "Connect Yrkie to read project counts, project information, Markdown outlines and individual DOE slides.",
+  "version": "0.4.0",
+  "description": "Read Yrkie projects, outlines and DOE slides; create DOE projects and save agent-authored outline versions.",
   "author": {
     "name": "Yrkie"
   },

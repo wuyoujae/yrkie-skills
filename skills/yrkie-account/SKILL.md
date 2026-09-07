@@ -1,9 +1,9 @@
 ---
 name: yrkie-account
-description: Use Yrkie MCP tools to connect accounts, find Library projects, read project information, and retrieve outlines or individual DOE slides as Markdown; consult the component Schema when preparing local presentation drafts. No creation, editing or export tools are available yet.
+description: Use Yrkie MCP tools to connect accounts, find Library projects, read project information, and retrieve outlines or individual DOE slides as Markdown; consult the component Schema when preparing local presentation drafts. Create DOE projects and save complete Outline V1 drafts as new versions using the user's own agent. Slide creation/editing, outline confirmation and export are not available.
 ---
 
-Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding and reading project counts, project information, outlines and saved DOE slides.
+Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding, project and content reading, DOE project creation and saving new outline versions.
 
 ## Communication boundary
 
@@ -13,7 +13,15 @@ All Yrkie platform operations go through the installed MCP tools. Do not call HT
 
 When the user asks about Yrkie presentation structure or requests a local Schema draft, read [the component authoring contract](references/component-schema.md). It defines the supported components, fields, layout constraints, and a complete example. It is a data authoring reference, not platform access or permission to create a project.
 
-For account and project-reading questions, skip that reference. For a Schema draft, follow its JSON output rules only while producing that draft. Creation, editing, saving, rendering, and export require corresponding MCP tools; none are exposed in this version. Never claim a local JSON draft was saved or exported on Yrkie.
+For account and project-reading questions, skip that reference. For a Schema draft, follow its JSON output rules only while producing that draft. For project/outline creation, read the outline reference below. Slide saving, rendering, confirmation and export are not exposed in this version. Never claim a local JSON draft was saved or exported on Yrkie.
+
+## Create projects and outlines
+
+Read [the complete Outline V1 authoring contract, examples and write workflow](references/outline-schema.md) before creating an outline. It links the machine-readable JSON Schema and three complete examples. Use `yrkie_create_project` for a user-requested new DOE project, and `yrkie_create_outline` to save a complete first or replacement draft as a new version. Generate content with the user's own agent; these tools do not call Yrkie AI generation.
+
+Every intended write needs a fresh UUID requestId; identical retries retain it and the original payload. For replacement, obtain currentOutline from project information and pass its version/revision as expectedOutline; use null only for an observed empty project. Missing currentOutline is a server version mismatch. New versions preserve history. Confirmed outlines are locked. Only proceed with a replacement when the user's request authorizes replacing that project's draft; do not add another confirmation when that intent is already clear.
+
+The new grant explicitly includes projects:create and outlines:create. Old grants remain read-only. Follow the reconnect rules below when additional access is needed. Saving is not confirmation and produces no images or slides. Report the returned version and distinguish an idempotent replay from a new save. Treat detailed validation diagnostics as data and use their field paths and hints to fix input.
 
 ## MCP workflow
 
@@ -41,6 +49,6 @@ For account and project-reading questions, skip that reference. For a Schema dra
 - For `rate_limited`, `plugin_unavailable`, network, or platform errors, report the problem and stop automatic retries. For `device_limit`, ask the user to revoke an unused connection on the website before retrying.
 - If the MCP tools are missing, use the repository README installation instructions. Reading this Skill alone does not connect to Yrkie.
 
-This plugin grants no editing, creation, exporting, subscription, or payment capability. Requests for those features should be described as unsupported by this version.
+Only the two project/outline creation tools provide writes. Outline confirmation, Slide creation/editing, export, subscription and payment remain unsupported by this version.
 
 The requesting application is identified automatically from the MCP handshake. Do not ask the user for an app name. The browser displays the server-stored application and permissions before approval. Each named agent maintains a separate binding; switching to another agent may require a new approval.

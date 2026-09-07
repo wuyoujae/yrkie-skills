@@ -1,7 +1,7 @@
 {
   "name": "yrkie",
-  "version": "0.3.0",
-  "description": "Connect Yrkie to read project counts, project information, Markdown outlines and individual DOE slides.",
+  "version": "0.4.0",
+  "description": "Read Yrkie projects, outlines and DOE slides; create DOE projects and save agent-authored outline versions.",
   "author": {
     "name": "Yrkie"
   },
@@ -15,11 +15,12 @@
     "developerName": "Yrkie",
     "category": "Productivity",
     "capabilities": [
-      "Read"
+      "Read",
+      "Write"
     ],
     "defaultPrompt": [
       "How many projects do I have in Yrkie?"
     ],
-    "longDescription": "Connect Yrkie with a revocable read-only grant. Find Library projects, read page counts, Markdown outlines and saved DOE slide content using temporary project references."
+    "longDescription": "Connect with explicit, revocable permission to read projects and content, create DOE projects and save new outline versions while preserving history. Your own agent authors the content. Outline confirmation, Slide editing and export are not included."
   }
 }

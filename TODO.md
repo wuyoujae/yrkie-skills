@@ -1,3 +1,14 @@
+# 0.4.0 DOE 项目与 Outline 创建
+
+用户已授权完成两个创建工具、完整 Outline Schema 和严格校验；确认与 Slide 写入后续另行开发。方案见主项目 docs/AGENT_PLUGIN_OUTLINE_WRITE_PLAN.md。
+
+- [x] 新建 DOE 项目、Outline 新版本、幂等 UUID 与版本/修订检查。
+- [x] 完整作者文档、JSON Schema、三个示例、诊断与重试指导。
+- [x] Core/最小权限 PG/Web/stdio/前端权限联调。
+- [x] 本地迁移、文档与 0.4.0 发布准备（生产部署单独执行）。
+
+以下为历史记录。
+
 # Yrkie 插件：账号绑定与项目读取
 
 ## 0.3.0 DOE 单页 Markdown 读取（用户已确认实施）
