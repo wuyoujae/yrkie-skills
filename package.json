@@ -1,7 +1,7 @@
 {
   "name": "yrkie-agent-plugin",
-  "version": "0.2.0",
-  "description": "Bind your Yrkie account and query your project count from an AI agent.",
+  "version": "0.3.0",
+  "description": "Connect Yrkie to read project information, outlines and saved DOE slides from an AI agent.",
   "type": "module",
   "private": true,
   "license": "MIT",

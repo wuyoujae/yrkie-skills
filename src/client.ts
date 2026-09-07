@@ -24,7 +24,8 @@ const deviceSchema = z.object({
   verification_uri: z.string(), verification_uri_complete: z.string(), expires_in: z.number().int().min(1).max(600), interval: z.number().int().min(5).max(60),
 });
 const READ_SCOPE = 'projects:count projects:read outlines:read';
-const scopeSchema = z.enum(['projects:count', READ_SCOPE]);
+const SLIDE_SCOPE = READ_SCOPE + ' slides:read';
+const scopeSchema = z.enum(['projects:count', READ_SCOPE, SLIDE_SCOPE]);
 const tokenSchema = z.object({access_token: z.string().regex(/^yrk_plugin_[a-f0-9]{64}$/), token_type: z.literal('Bearer'), scope: scopeSchema, expires_in:z.number().int().positive()});
 const accountSchema = z.object({displayName:z.string().max(256),email:z.string().max(320),scope:scopeSchema});
 const countSchema = z.object({count:z.number().int().nonnegative().safe(),scope:z.literal('library'),asOf:z.string().datetime({offset:true})});
@@ -33,7 +34,7 @@ const titleSchema = z.string().max(8192);
 const projectsSchema = z.object({projects:z.array(z.object({projectRef:projectRefSchema,title:titleSchema,expiresAt:z.string().datetime({offset:true})})).max(50),nextOffset:z.number().int().min(0).max(100000).nullable()});
 const infoSchema = z.object({projectRef:projectRefSchema,title:titleSchema,projectType:z.enum(['presentation','social-card','visual','other']),slideCount:z.number().int().nonnegative().safe(),outlinePageCount:z.number().int().min(0).max(200).nullable(),outlineStatus:z.enum(['none','draft','confirmed'])});
 const outlineSchema = z.object({projectRef:projectRefSchema,title:titleSchema,markdown:z.string().max(120000)});
-const knownErrors = new Set(['authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable','insufficient_scope','project_reference_expired_or_unavailable','reference_capacity_reached','project_search_too_broad','outline_not_found','outline_unavailable','outline_too_large','invalid_request']);
+const knownErrors = new Set(['authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable','insufficient_scope','project_reference_expired_or_unavailable','reference_capacity_reached','project_search_too_broad','outline_not_found','outline_unavailable','outline_too_large','slide_format_unsupported','slides_not_found','slide_page_out_of_range','slide_unavailable','slide_too_large','slide_revision_conflict','invalid_request']);
 
 export class YrkieClient {
   readonly origin: string;
@@ -76,7 +77,7 @@ export class YrkieClient {
     if(await this.credentials.read())throw new PluginError('already_bound');
     await this.credentials.check();
     if(this.pending && this.now()<this.pending.expires)return this.bindingInfo();
-    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:READ_SCOPE,agent_name:agentName}));
+    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:SLIDE_SCOPE,agent_name:agentName}));
     if(device.verification_uri!==this.origin+'/plugin/authorize')throw new PluginError('invalid_response');
     if(device.verification_uri_complete) {
       const expected=this.origin+'/plugin/authorize#request=';
@@ -132,6 +133,16 @@ export class YrkieClient {
   async projectOutline(projectRef: string) {
     const ref=this.parse(projectRefSchema,projectRef);
     return this.parse(outlineSchema,await this.request(`/api/plugin/v1/projects/${ref}/outline`,undefined,await this.token(),'GET',1048576));
+  }
+  async projectSlide(projectRef: string, pageNumber: number, expectedRevision?: number) {
+    const ref=this.parse(projectRefSchema,projectRef);
+    const page=this.parse(z.number().int().positive().safe(),pageNumber);
+    if(expectedRevision!==undefined)this.parse(z.number().int().positive().safe(),expectedRevision);
+    const query=expectedRevision===undefined?'':`?expectedRevision=${expectedRevision}`;
+    const schema=z.object({projectRef:projectRefSchema,title:titleSchema,pageNumber:z.number().int().positive().safe(),totalSlides:z.number().int().min(1).max(200),revision:z.number().int().positive().safe(),markdown:z.string().refine(v=>Buffer.byteLength(v,'utf8')<=120000)});
+    const result=this.parse(schema,await this.request(`/api/plugin/v1/projects/${ref}/slides/${page}${query}`,undefined,await this.token(),'GET',1048576));
+    if(result.projectRef!==ref || result.pageNumber!==page || page>result.totalSlides || (expectedRevision!==undefined && result.revision!==expectedRevision))throw new PluginError('invalid_response');
+    return result;
   }
   async logout() {return this.exclusive(async()=>{
     const token=await this.token();

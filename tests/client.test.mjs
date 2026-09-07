@@ -39,7 +39,7 @@ test('count without a binding makes no request',async()=>{const s=setup();await 
 test('sends application metadata when requesting a connection',async()=>{
   const s=setup([device]); await s.client.begin('Codex');
   assert.equal(s.calls[0].options.body.get('agent_name'),'Codex');
-  assert.equal(s.calls[0].options.body.get('scope'),'projects:count projects:read outlines:read');
+  assert.equal(s.calls[0].options.body.get('scope'),'projects:count projects:read outlines:read slides:read');
 });
 test('zero is a valid response but errors are not zero',async()=>{
   const s=setup([{count:0,scope:'library',asOf:'2026-09-06T00:00:00Z'},{status:503,body:{error:'temporarily_unavailable'}},{count:-1,scope:'library',asOf:'today'}]);await s.store.write(token);
@@ -107,4 +107,38 @@ test('large Markdown works while oversized responses fail closed',async()=>{
   const s=setup([{projectRef:ref,title:'Demo',markdown:'文'.repeat(15000)},{projectRef:ref,title:'Demo',markdown:'文'.repeat(400000)}]);await s.store.write(token);
   assert.equal((await s.client.projectOutline(ref)).markdown.length,15000);
   await assert.rejects(s.client.projectOutline(ref),{code:'invalid_response'});
+});
+
+test('single slide requests carry page and revision and strip private response fields',async()=>{
+  const ref='prj_'+'e'.repeat(64);
+  const s=setup([{projectRef:ref,title:'Deck',pageNumber:3,totalSlides:12,revision:8,markdown:'## Page 3\n| Revenue | 42 |',slide_json:{secret:'hidden'},slideId:'private'}]);
+  await s.store.write(token);
+  const result=await s.client.projectSlide(ref,3,8);
+  assert.equal(s.calls[0].url,`https://yrkie.com/api/plugin/v1/projects/${ref}/slides/3?expectedRevision=8`);
+  assert.equal(result.revision,8);assert.match(result.markdown,/42/);
+  assert.doesNotMatch(JSON.stringify(result),/private|hidden|slide_json/);
+});
+
+test('slide input bounds reject before requests',async()=>{
+  const s=setup();await s.store.write(token);const ref='prj_'+'e'.repeat(64);
+  for(const page of [0,-1,1.5,Infinity,Number.MAX_SAFE_INTEGER+1]) await assert.rejects(s.client.projectSlide(ref,page));
+  for(const revision of [0,-1,1.5,Infinity]) await assert.rejects(s.client.projectSlide(ref,1,revision));
+  await assert.rejects(s.client.projectSlide('real-slide-id',1));
+  assert.equal(s.calls.length,0);
+});
+
+test('slide responses must match the requested page project and revision',async()=>{
+  const ref='prj_'+'e'.repeat(64);
+  const base={projectRef:ref,title:'Deck',pageNumber:2,totalSlides:12,revision:8,markdown:'content'};
+  for(const change of [{projectRef:'prj_'+'f'.repeat(64)},{pageNumber:3},{revision:9},{totalSlides:1},{markdown:'文'.repeat(40001)}]) {
+    const s=setup([{...base,...change}]);await s.store.write(token);
+    await assert.rejects(s.client.projectSlide(ref,2,8),{code:'invalid_response'});
+  }
+});
+
+test('slide failure codes remain actionable without private error details',async()=>{
+  for(const code of ['insufficient_scope','slide_revision_conflict','slide_format_unsupported','slides_not_found','slide_page_out_of_range','slide_unavailable','slide_too_large']) {
+    const s=setup([{status:400,body:{error:code,detail:'private database failure'}}]);await s.store.write(token);
+    await assert.rejects(s.client.projectSlide('prj_'+'e'.repeat(64),1),{code});
+  }
 });

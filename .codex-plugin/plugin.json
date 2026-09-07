@@ -1,7 +1,7 @@
 {
   "name": "yrkie",
-  "version": "0.2.0",
-  "description": "Connect Yrkie to read project counts, project information and Markdown outlines.",
+  "version": "0.3.0",
+  "description": "Connect Yrkie to read project counts, project information, Markdown outlines and individual DOE slides.",
   "author": {
     "name": "Yrkie"
   },
@@ -20,6 +20,6 @@
     "defaultPrompt": [
       "How many projects do I have in Yrkie?"
     ],
-    "longDescription": "Connect Yrkie with a revocable read-only grant. Find Library projects, read page counts and Markdown outlines using temporary project references."
+    "longDescription": "Connect Yrkie with a revocable read-only grant. Find Library projects, read page counts, Markdown outlines and saved DOE slide content using temporary project references."
   }
 }

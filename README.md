@@ -2,7 +2,7 @@
 
 在支持本地 stdio MCP 的 Agent 中绑定 Yrkie 账号，查询项目数量、项目信息和 Markdown 大纲。MIT 开源，通信层不依赖 Codex、Claude Code 或任何模型 SDK。
 
-当前版本 0.2.0 提供账号连接、项目检索、项目概况和 Markdown 大纲读取。创建、编辑、保存和导出 PPT，以及订阅权益不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
+当前版本 0.3.0 提供账号连接、项目检索、项目概况、Markdown 大纲和 DOE 单页 Slide 内容读取。创建、编辑、保存和导出 PPT，以及订阅权益不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
 
 ## 从源码安装
 
@@ -55,7 +55,7 @@ node scripts/install.mjs claude --origin http://127.0.0.1:7622
 
 不要把密码、网站 Cookie 或访问凭据贴进聊天。项目数与 Library 一致：统计所有项目类型，排除已删除和归档项目；平台错误不会返回假造的 0。
 
-新授权包含 `projects:count projects:read outlines:read`，网页明确显示项目名称、页数和大纲内容的读取权限。旧的 count-only 授权继续只能计数，访问新功能时返回 `insufficient_scope`，需用户同意重新绑定。授权有效期 30 天，每个账号最多 20 个有效授权。可以对 Agent 说“解绑 Yrkie”，或在网站的 **Agent 账号绑定** 页面撤销。凭据按服务地址和 Agent 名称隔离，Codex 与 Claude Code 分别授权和解绑。
+新授权包含 `projects:count projects:read outlines:read slides:read`，网页明确显示项目名称、页数、大纲及 DOE 幻灯片内容的读取权限。0.2.0 的项目/大纲授权仍可使用原工具，读取 Slide 需重新授权。旧的 count-only 授权继续只能计数，访问新功能时返回 `insufficient_scope`，需用户同意重新绑定。授权有效期 30 天，每个账号最多 20 个有效授权。可以对 Agent 说“解绑 Yrkie”，或在网站的 **Agent 账号绑定** 页面撤销。凭据按服务地址和 Agent 名称隔离，Codex 与 Claude Code 分别授权和解绑。
 
 连接后可以说：**“帮我看看我的「季度复盘」项目的大纲是什么？”** Agent 会先按名称检索项目，再使用返回的临时 `projectRef` 读取。引用固定 4 小时有效，只能用于当前授权；失效后重新检索。它不含数据库 ID，单独获得引用也不能访问项目。项目概况区分实际 Slide 数和大纲页数；大纲由平台转为 Markdown，不返回原始结构或素材链接。重复标题需要用户确认。
 
@@ -76,6 +76,7 @@ Skill 保存组件 Schema 和 MCP 工作流，所有平台操作必须通过 MCP
 | `yrkie_list_projects` | 按名称检索项目，50 项分页，返回临时引用及到期时间 |
 | `yrkie_project_info` | 用临时引用读取标题、类型、Slide 数与大纲状态/页数 |
 | `yrkie_project_outline` | 用临时引用读取服务器转换的 Markdown 大纲 |
+| `yrkie_project_slide` | 指定 projectRef 和从 1 开始的 pageNumber，读取一页已保存 DOE Slide 的 Markdown；多页读取携带首次返回的 expectedRevision |
 | `yrkie_unbind_account` | 撤销授权并清除本机凭据 |
 
 绑定过程只保存在 MCP 进程内，重启后需要重新开始未完成的绑定。已完成的绑定保存在系统凭据库中。网络故障时解绑不清除本机凭据，以便重试；系统凭据库写入失败且自动撤销失败时，请在官网撤销新授权。
@@ -102,3 +103,11 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 ### 0.1.3 按应用授权
 
 MCP 自动从客户端初始化握手读取应用名；用户无需填写名称或确认码。服务器保存名称并签发一次性链接，网页要求登录后读取待授权请求，显示“是否授权 Codex / Claude Code / 对应 Agent”，点击授权后 MCP 才能兑换凭据。过期或已用链接不能再授权。名称来自客户端自报信息，用于展示而非厂商身份认证。无法提供名称的客户端显示 AI Agent。
+
+### 0.3.0 DOE 单页读取
+
+可以说“阅读「季度复盘」第 3 页的 Slide 内容”。返回项目标题、页码、总页数、稿件 revision 和 Markdown；按页与组件分组保留正文、条目、表格、图表数值、代码和公式。图片只提供已有说明，未知组件明确标记省略，不读取演讲备注，不返回原 JSON 或素材地址。
+
+当前仅 DOE 项目支持，其他项目返回 slide_format_unsupported。多页读取时，将首个响应的 revision 作为后续调用的 expectedRevision；稿件变化返回 slide_revision_conflict，不能混合不同版本。授权不足需用户同意重新连接；重新连接后须重新检索项目取得新的引用。每页 Markdown 最多 120 KB UTF-8，内容过大或损坏会明确失败。
+
+更新源码后执行 npm ci 与 npm run build，同步整个 Skill 目录并重启 MCP。0.3.0 必须配合支持 slides:read 的平台服务；旧平台需先升级。本地实现和生产部署分别验收，不因源码发布而自动开放生产能力。
