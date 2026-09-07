@@ -39,6 +39,7 @@ test('count without a binding makes no request',async()=>{const s=setup();await 
 test('sends application metadata when requesting a connection',async()=>{
   const s=setup([device]); await s.client.begin('Codex');
   assert.equal(s.calls[0].options.body.get('agent_name'),'Codex');
+  assert.equal(s.calls[0].options.body.get('scope'),'projects:count projects:read outlines:read');
 });
 test('zero is a valid response but errors are not zero',async()=>{
   const s=setup([{count:0,scope:'library',asOf:'2026-09-06T00:00:00Z'},{status:503,body:{error:'temporarily_unavailable'}},{count:-1,scope:'library',asOf:'today'}]);await s.store.write(token);
@@ -68,4 +69,42 @@ test('concurrent binding completion is rejected before a second exchange',async(
 
 test('does not silently downgrade to manual code entry',async()=>{
   await assert.rejects(setup([{...device,verification_uri_complete:undefined}]).client.begin(),{code:'invalid_response'});
+});
+
+test('project projections strip unexpected fields and transport only opaque references',async()=>{
+  const ref='prj_'+'d'.repeat(64);
+  const s=setup([
+    {projects:[{projectRef:ref,title:'Growth',expiresAt:'2026-09-06T04:00:00Z',sessionId:'private'}],nextOffset:null,userId:'private'},
+    {projectRef:ref,title:'Growth',projectType:'presentation',slideCount:2,outlinePageCount:3,outlineStatus:'draft',projectId:'private'},
+    {projectRef:ref,title:'Growth',markdown:'# Growth\n## Page 1\nRevenue',outline_json:{secret:'private'}},
+  ]);
+  await s.store.write(token);
+  const list=await s.client.projects('Growth & A',0);
+  assert.equal(list.projects[0].projectRef,ref);
+  assert.equal(new URL(s.calls[0].url).searchParams.get('query'),'Growth & A');
+  const info=await s.client.projectInfo(ref);
+  const outline=await s.client.projectOutline(ref);
+  assert.equal(info.slideCount,2);assert.match(outline.markdown,/Revenue/);
+  assert.doesNotMatch(JSON.stringify({list,info,outline}),/private|sessionId|outline_json|projectId|userId/);
+  assert.ok(s.calls.every(c=>c.options.headers.Authorization===`Bearer ${token}`));
+});
+
+test('invalid references and search bounds never make network requests',async()=>{
+  const s=setup();await s.store.write(token);
+  for(const ref of ['real-session-id','prj_'+'x'.repeat(64),'../account']) await assert.rejects(s.client.projectInfo(ref));
+  await assert.rejects(s.client.projects('a'.repeat(121)));
+  await assert.rejects(s.client.projects('',-1));assert.equal(s.calls.length,0);
+});
+
+test('expired refs and old scopes return actionable sanitized errors',async()=>{
+  const s=setup([{status:403,body:{error:'insufficient_scope',detail:'secret'}},{status:400,body:{error:'project_reference_expired_or_unavailable',sessionId:'secret'}}]);await s.store.write(token);
+  await assert.rejects(s.client.projects(),{code:'insufficient_scope'});
+  await assert.rejects(s.client.projectOutline('prj_'+'d'.repeat(64)),{code:'project_reference_expired_or_unavailable'});
+});
+
+test('large Markdown works while oversized responses fail closed',async()=>{
+  const ref='prj_'+'d'.repeat(64);
+  const s=setup([{projectRef:ref,title:'Demo',markdown:'文'.repeat(15000)},{projectRef:ref,title:'Demo',markdown:'文'.repeat(400000)}]);await s.store.write(token);
+  assert.equal((await s.client.projectOutline(ref)).markdown.length,15000);
+  await assert.rejects(s.client.projectOutline(ref),{code:'invalid_response'});
 });

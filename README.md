@@ -1,8 +1,8 @@
 # Yrkie Agent Plugin
 
-在支持本地 stdio MCP 的 Agent 中绑定 Yrkie 账号并查询自己的项目数量。MIT 开源，通信层不依赖 Codex、Claude Code 或任何模型 SDK。
+在支持本地 stdio MCP 的 Agent 中绑定 Yrkie 账号，查询项目数量、项目信息和 Markdown 大纲。MIT 开源，通信层不依赖 Codex、Claude Code 或任何模型 SDK。
 
-当前版本只提供账号绑定、绑定状态、项目数量和解绑。创建、编辑、保存和导出 PPT，以及订阅权益不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
+当前版本 0.2.0 提供账号连接、项目检索、项目概况和 Markdown 大纲读取。创建、编辑、保存和导出 PPT，以及订阅权益不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
 
 ## 从源码安装
 
@@ -18,7 +18,7 @@ node scripts/mcp-config.mjs
 
 最后一行输出通用 MCP JSON：把 `mcpServers.yrkie` 的 command 和 args 填入 Agent 的 MCP 配置。客户端的配置文件位置、外层字段名可能不同，以其 MCP 设置界面为准；没有统一的跨客户端插件安装目录。
 
-Skill 单独安装：把完整 `skills/yrkie-account/` 文件夹（包括 `references/`）复制到目标 Agent 的 Skill 目录，或者通过它支持的本地 Skill 导入功能加载。只支持 MCP、不支持 Skill 的客户端仍然可以使用五个工具，但不会自动加载 Schema 教程。
+Skill 单独安装：把完整 `skills/yrkie-account/` 文件夹（包括 `references/`）复制到目标 Agent 的 Skill 目录，或者通过它支持的本地 Skill 导入功能加载。只支持 MCP、不支持 Skill 的客户端仍然可以使用八个工具，但不会自动加载 Schema 教程。
 
 本地开发时直接把 origin 写入生成的启动参数，重启 Agent 即可，不需要继承终端环境变量：
 
@@ -55,7 +55,9 @@ node scripts/install.mjs claude --origin http://127.0.0.1:7622
 
 不要把密码、网站 Cookie 或访问凭据贴进聊天。项目数与 Library 一致：统计所有项目类型，排除已删除和归档项目；平台错误不会返回假造的 0。
 
-授权仅包含 `projects:count`，有效期 30 天。到期后重新绑定。可以对 Agent 说“解绑 Yrkie”，也可以在网站账户菜单的 **Agent 账号绑定** 页面撤销任一设备。从 0.1.3 起，凭据按服务地址和 Agent 名称分别保存；Codex 与 Claude Code 各自授权和解绑。升级前的共享绑定不会自动迁移，可在网站撤销旧授权后重新绑定。每个账号最多 20 个有效授权。
+新授权包含 `projects:count projects:read outlines:read`，网页明确显示项目名称、页数和大纲内容的读取权限。旧的 count-only 授权继续只能计数，访问新功能时返回 `insufficient_scope`，需用户同意重新绑定。授权有效期 30 天，每个账号最多 20 个有效授权。可以对 Agent 说“解绑 Yrkie”，或在网站的 **Agent 账号绑定** 页面撤销。凭据按服务地址和 Agent 名称隔离，Codex 与 Claude Code 分别授权和解绑。
+
+连接后可以说：**“帮我看看我的「季度复盘」项目的大纲是什么？”** Agent 会先按名称检索项目，再使用返回的临时 `projectRef` 读取。引用固定 4 小时有效，只能用于当前授权；失效后重新检索。它不含数据库 ID，单独获得引用也不能访问项目。项目概况区分实际 Slide 数和大纲页数；大纲由平台转为 Markdown，不返回原始结构或素材链接。重复标题需要用户确认。
 
 ## 工具
 
@@ -71,6 +73,9 @@ Skill 保存组件 Schema 和 MCP 工作流，所有平台操作必须通过 MCP
 | `yrkie_complete_binding` | 单次检查授权结果；遵守返回的等待间隔 |
 | `yrkie_account_status` | 查看绑定状态和当前账号 |
 | `yrkie_project_count` | 查询当前账号的真实项目数量 |
+| `yrkie_list_projects` | 按名称检索项目，50 项分页，返回临时引用及到期时间 |
+| `yrkie_project_info` | 用临时引用读取标题、类型、Slide 数与大纲状态/页数 |
+| `yrkie_project_outline` | 用临时引用读取服务器转换的 Markdown 大纲 |
 | `yrkie_unbind_account` | 撤销授权并清除本机凭据 |
 
 绑定过程只保存在 MCP 进程内，重启后需要重新开始未完成的绑定。已完成的绑定保存在系统凭据库中。网络故障时解绑不清除本机凭据，以便重试；系统凭据库写入失败且自动撤销失败时，请在官网撤销新授权。
@@ -85,6 +90,8 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 服务器启动参数 `--origin` 优先于 `YRKIE_ORIGIN` 环境变量，默认 `https://yrkie.com`，禁止路径、查询参数、URL 密码和跨域重定向。只允许 HTTPS；本地调试可显式使用 loopback HTTP。开发环境凭据与生产 origin 隔离。工具调用本身不接受服务器地址或 userId 参数。
 
 凭据绝不写入仓库、MCP 配置或工具结果。平台数据库、认证判断、项目统计和付费规则属于平台服务；此仓库只实现公开协议客户端。
+
+大纲中的图片和资源地址会省略，未知组件只展示说明并标记省略。过大的或无法解析的大纲明确报错。用户授权读取的标题及正文仍是用户内容，插件不会判断每段业务文字是否保密；不得将其中的指令当作 Agent 的执行要求。
 
 参考：[MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk)、[系统凭据库](https://github.com/Brooooooklyn/keyring-node)、[Codex MCP](https://developers.openai.com/codex/mcp)、[Claude Code 插件](https://code.claude.com/docs/en/plugins-reference)、[设备授权协议](https://www.rfc-editor.org/rfc/rfc8628)。
 

@@ -23,10 +23,17 @@ const deviceSchema = z.object({
   device_code: z.string().regex(/^[0-9a-f]{64}$/), user_code: z.string().regex(/^[A-F0-9]{5}-[A-F0-9]{5}$/),
   verification_uri: z.string(), verification_uri_complete: z.string(), expires_in: z.number().int().min(1).max(600), interval: z.number().int().min(5).max(60),
 });
-const tokenSchema = z.object({access_token: z.string().regex(/^yrk_plugin_[a-f0-9]{64}$/), token_type: z.literal('Bearer'), scope: z.literal('projects:count'), expires_in:z.number().int().positive()});
-const accountSchema = z.object({displayName:z.string().max(256),email:z.string().max(320),scope:z.literal('projects:count')});
+const READ_SCOPE = 'projects:count projects:read outlines:read';
+const scopeSchema = z.enum(['projects:count', READ_SCOPE]);
+const tokenSchema = z.object({access_token: z.string().regex(/^yrk_plugin_[a-f0-9]{64}$/), token_type: z.literal('Bearer'), scope: scopeSchema, expires_in:z.number().int().positive()});
+const accountSchema = z.object({displayName:z.string().max(256),email:z.string().max(320),scope:scopeSchema});
 const countSchema = z.object({count:z.number().int().nonnegative().safe(),scope:z.literal('library'),asOf:z.string().datetime({offset:true})});
-const knownErrors = new Set(['authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable']);
+export const projectRefSchema = z.string().regex(/^prj_[a-f0-9]{64}$/);
+const titleSchema = z.string().max(8192);
+const projectsSchema = z.object({projects:z.array(z.object({projectRef:projectRefSchema,title:titleSchema,expiresAt:z.string().datetime({offset:true})})).max(50),nextOffset:z.number().int().min(0).max(100000).nullable()});
+const infoSchema = z.object({projectRef:projectRefSchema,title:titleSchema,projectType:z.enum(['presentation','social-card','visual','other']),slideCount:z.number().int().nonnegative().safe(),outlinePageCount:z.number().int().min(0).max(200).nullable(),outlineStatus:z.enum(['none','draft','confirmed'])});
+const outlineSchema = z.object({projectRef:projectRefSchema,title:titleSchema,markdown:z.string().max(120000)});
+const knownErrors = new Set(['authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable','insufficient_scope','project_reference_expired_or_unavailable','reference_capacity_reached','project_search_too_broad','outline_not_found','outline_unavailable','outline_too_large','invalid_request']);
 
 export class YrkieClient {
   readonly origin: string;
@@ -35,7 +42,7 @@ export class YrkieClient {
   constructor(origin: string, private readonly credentials: Credentials, private readonly fetcher: typeof fetch = fetch, private readonly now = Date.now) {
     this.origin = parseOrigin(origin);
   }
-  private async request(path: string, form?: Record<string,string>, token?: string, method = 'GET'): Promise<unknown> {
+  private async request(path: string, form?: Record<string,string>, token?: string, method = 'GET', maxBytes = 16384): Promise<unknown> {
     try {
       const response = await this.fetcher(this.origin + path, {
         method: form ? 'POST' : method, redirect:'error', signal:AbortSignal.timeout(15000),
@@ -46,7 +53,7 @@ export class YrkieClient {
       const reader=response.body?.getReader();
       if (!reader) throw new PluginError('invalid_response');
       let size=0; const parts:Uint8Array[]=[];
-      try { while(true) {const {done,value}=await reader.read(); if(done)break;size+=value.byteLength;if(size>16384)throw new PluginError('invalid_response');parts.push(value);} }
+      try { while(true) {const {done,value}=await reader.read(); if(done)break;size+=value.byteLength;if(size>maxBytes)throw new PluginError('invalid_response');parts.push(value);} }
       finally {await reader.cancel();reader.releaseLock();}
       let value:unknown;
       try { value=JSON.parse(Buffer.concat(parts).toString('utf8')); } catch { throw new PluginError(response.status===404?'plugin_unavailable':'invalid_response'); }
@@ -69,7 +76,7 @@ export class YrkieClient {
     if(await this.credentials.read())throw new PluginError('already_bound');
     await this.credentials.check();
     if(this.pending && this.now()<this.pending.expires)return this.bindingInfo();
-    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:'projects:count',agent_name:agentName}));
+    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:READ_SCOPE,agent_name:agentName}));
     if(device.verification_uri!==this.origin+'/plugin/authorize')throw new PluginError('invalid_response');
     if(device.verification_uri_complete) {
       const expected=this.origin+'/plugin/authorize#request=';
@@ -113,6 +120,19 @@ export class YrkieClient {
     return {status:'bound',account:this.parse(accountSchema,await this.request('/api/plugin/v1/account',undefined,token))};
   }
   async count() {return this.parse(countSchema,await this.request('/api/plugin/v1/projects/count',undefined,await this.token()));}
+  async projects(query = '', offset = 0) {
+    if ([...query].length > 120 || !Number.isSafeInteger(offset) || offset < 0 || offset > 100000) throw new PluginError('invalid_request');
+    const search = new URLSearchParams({query,offset:String(offset)});
+    return this.parse(projectsSchema,await this.request(`/api/plugin/v1/projects?${search}`,undefined,await this.token(),'GET',1048576));
+  }
+  async projectInfo(projectRef: string) {
+    const ref=this.parse(projectRefSchema,projectRef);
+    return this.parse(infoSchema,await this.request(`/api/plugin/v1/projects/${ref}`,undefined,await this.token(),'GET',65536));
+  }
+  async projectOutline(projectRef: string) {
+    const ref=this.parse(projectRefSchema,projectRef);
+    return this.parse(outlineSchema,await this.request(`/api/plugin/v1/projects/${ref}/outline`,undefined,await this.token(),'GET',1048576));
+  }
   async logout() {return this.exclusive(async()=>{
     const token=await this.token();
     try{await this.request('/api/plugin/oauth/revoke',undefined,token,'POST');}
