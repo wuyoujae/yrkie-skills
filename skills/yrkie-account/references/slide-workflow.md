@@ -4,7 +4,7 @@ Use `yrkie_create_slides`, `yrkie_edit_slide` and `yrkie_delete_slide` through M
 
 ## Authoring reference and review
 
-Read [slide-schema.md](slide-schema.md) before authoring. The product owner intentionally maintains that file and it may currently be empty. If empty, do not invent a complete deck contract from the older component reference. Use a complete Schema supplied by the user, or explain that the authoring reference must be filled in. Existing compatible pages can be read with `includeSchema=true` and edited by preserving the returned shape and changing the reviewed content.
+Read [slide-schema.md](slide-schema.md) before authoring. It contains the complete Root/Slide contract, all 38 component types, examples, external validation limits and exact MCP arguments. Use this current reference for new authoring. Existing compatible pages can be read with `includeSchema=true` and edited by preserving the returned identity and changing the reviewed content.
 
 Ask for approval of the actual complete deck, page change or deletion before writing. Approval of account permissions is not approval to replace a particular deck. Already approved identical writes do not need repeated approval. A write receipt means saved content, not a rendered/exported or visually verified presentation. Layout should be reviewed in the application.
 
@@ -32,7 +32,7 @@ Read and show the page to be deleted, including its current position and title/c
 ## Limits and recovery
 
 - Complete request: 8 MiB; one page: 2,000,000 UTF-8 bytes; JSON nesting: 32; any text/icon field: 65,536 bytes. IDs must remain unique and all fields/components must follow the server's current authoring contract. The server returns bounded JSON Pointer diagnostics with correction hints. Fix the indicated field; do not ask the platform to repair or generate the Schema.
-- SVG is accepted only in icon fields: static SVG geometry (g/path/circle/ellipse/rect/line/polyline/polygon), bounded nodes, and presentation/geometry attributes. No scripts, events, links, CSS, embedded images, entities, foreignObject or external resources. Other strings use plain text.
+- Author icon fields with Lucide names as specified in the current Slide schema. Keep other strings as plain text and follow that schema's external text constraints, including code and formula strings.
 - `slide_revision_conflict`: reread project state and the affected page(s), revise the proposal and obtain approval for changed content. Never automatically substitute a newer revision to force an old draft through.
 - `outline_conflict` or `outline_images_not_ready`: reread outline image status. A saved confirmed outline can acquire a newer revision during image materialization. Do not write until the final content and assets are ready.
 - An uncertain response must be retried with the identical UUID, payload and expected revisions. Successful replay returns the original receipt with `replayed=true`, even if later edits exist. This is an old operation's receipt, not proof that its revision is still current. Read after replay when current content matters.

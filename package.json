@@ -1,7 +1,7 @@
 {
   "name": "yrkie-agent-plugin",
-  "version": "0.6.0",
-  "description": "Read Yrkie content, create DOE projects and outlines, upload approved private images, and confirm outlines with explicitly approved platform image generation.",
+  "version": "0.7.0",
+  "description": "Use complete Outline and Slide Schemas to author DOE projects with your own agent, read saved content, manage approved images and outlines, and create, edit or delete slides through Yrkie MCP.",
   "type": "module",
   "private": true,
   "license": "MIT",

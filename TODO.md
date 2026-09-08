@@ -1,3 +1,12 @@
+# 0.7.0 完整作者 Schema（2026-09-08）
+
+发布用户已填写的 Outline / Slide Schema；保留正文，更新 Skill 导航与使用说明，十九个 MCP 工具及权限合同不变。
+
+- [x] 核对两份 Schema 与已验证来源的语法及示例一致，仅 Markdown 表格排版不同。
+- [x] 同步 Skill/工作流入口、README、npm 和两类插件清单及 MCP 握手版本。
+- [x] 构建与 46 项插件测试通过；Skill 有效，Schema 示例/类型、引用完整性及真实 MCP 0.7.0 握手通过，用户 Schema 字节保持不变。
+- [x] 独立仓库发布准备完成；发布目标为 main、v0.7.0 标签及同名 GitHub Release。发布结果以远端标签/Release 为准，未包含平台部署。
+
 # 0.6.0 DOE Slide 写入
 
 用户已授权创建整稿、修改单页和删除单页；实施与验收见主项目 `docs/AGENT_PLUGIN_SLIDE_WRITE_PLAN.md`。
