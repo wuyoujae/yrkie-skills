@@ -1,3 +1,12 @@
+# Design Prompt 与必读入口（2026-09-08，待发布）
+
+将用户为本地 Agent 编写的两份设计资源原样加入 Skill references。Schema 负责字段/语法，Design 负责内容/设计；对应创作必须完整阅读两份，全流程先读齐四份，读取不完整时先补齐，不影响普通只读查询。
+
+- [x] 收录 outline-design.md、slide-design.md，核对与原文件字节一致。
+- [x] 在 Skill 最前面和 Outline/Slide 工作流明确必读、分工、截断恢复及交付前核对。
+- [x] 同步 README 与维护记录；47 项插件测试及 Skill 校验通过，递归验证分发引用完整。
+- [x] 本机 Codex 同名 Skill 经已发布基线比对后同步完整目录；未改 MCP 配置或绑定，GitHub 新版尚未发布。
+
 # 0.7.0 完整作者 Schema（2026-09-08）
 
 发布用户已填写的 Outline / Slide Schema；保留正文，更新 Skill 导航与使用说明，十九个 MCP 工具及权限合同不变。

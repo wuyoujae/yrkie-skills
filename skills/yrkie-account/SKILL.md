@@ -1,9 +1,25 @@
 ---
 name: yrkie-account
-description: Use Yrkie MCP tools to connect accounts, find Library projects, read project information, and retrieve outlines or individual DOE slides as Markdown; consult the complete Outline and Slide Schemas when preparing local presentation drafts. Create DOE projects and save complete Outline V1 drafts as new versions using the user's own agent. Upload approved images and confirm reviewed outlines, including explicitly approved platform image generation. Create complete DOE slide decks, edit pages and delete pages after approval. Export is not available.
+description: Use Yrkie MCP tools to connect accounts, find projects, read outlines or DOE slides, create projects and outlines, manage approved images, confirm outlines, and create, edit or delete slides. Authoring with the user's own agent requires fully reading and following the paired Schema and Design Prompt. Export is not available.
 ---
 
 Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding, project and content reading, DOE projects and outline versions, approved image uploads, final outline confirmation, image status/retry and DOE Slide creation/editing/deletion.
+
+## Mandatory reading before authoring
+
+When this Skill loads, identify the requested stage. **Before planning, drafting, rewriting, editing or preparing authored content for submission, you MUST read the complete paired Schema AND Design Prompt below.** This includes local JSON drafts and single-page edits, even when an existing page supplies a valid starting shape.
+
+| Requested work | Required files — read both in full |
+| --- | --- |
+| Outline creation, revision or submission review | [Outline Schema](references/outline-schema.md) AND [Outline Design Prompt](references/outline-design.md) |
+| Slide creation, regeneration, single-page editing or submission review | [Slide Schema](references/slide-schema.md) AND [Slide Design Prompt](references/slide-design.md) |
+| Complete Outline-to-Slide workflow | All four files above, before drafting the Outline, so its content and image plan support the later Slide work. |
+
+Read the actual files from this installed Skill version. A filename, summary, search excerpt, old component reference, existing JSON, or memory of another version does not satisfy this requirement. If a read is truncated, read the remaining sections in order until the entire file has been received. If a required file is missing or unreadable, explain which file needs restoring and pause the dependent authoring or submission; independent read-only work may continue. After context loss or a Skill update, reload required material that is no longer available before continuing.
+
+**Apply both documents, not just their output format.** The Schema defines supported fields, serialization, limits, assets and tool arguments. The Design Prompt governs argument structure, copy density and image planning for Outline, or content fidelity, component selection, composition and visual review for Slides. Follow both within the user's requested scope; design choices cannot invent fields or bypass Schema, authorization or project-state constraints. Before presenting a draft for approval or saving it, review the actual result against both documents and correct concrete issues.
+
+Ordinary account/project queries, viewing or summarizing saved content, and a deletion without content authoring do not require these authoring files; follow their MCP workflows. If the task changes from reading to authoring, complete the required reading before drafting. An unchanged retry does not require rereading material still available from the same Skill version.
 
 ## Communication boundary
 
@@ -11,13 +27,13 @@ All Yrkie platform operations go through the installed MCP tools. Do not call HT
 
 ## Authoring references
 
-For a local Outline draft, read [the complete Outline V1 schema](references/outline-schema.md). For Slide structure, components or a local deck/page draft, read [the complete Slide schema](references/slide-schema.md), covering metadata, theme, canvas, backgrounds, layouts and all 38 component types. The [older component reference](references/component-schema.md) remains for historical comparison; use the complete Slide schema for new authoring.
+The paired references above are the required authoring source. The Slide Schema covers metadata, theme, canvas, backgrounds, layouts and all 38 component types; its Design Prompt explains how to select and compose them for the approved content. The [older component reference](references/component-schema.md) remains for historical comparison and never replaces either required file.
 
 For account and project-reading questions, skip authoring references. Follow Schema JSON output rules only while producing a draft. Saving follows the separate workflows below and requires user approval; a local draft is not proof of platform access or saved content. Rendering and export are not exposed.
 
 ## Create projects, images and outlines
 
-Read [the Outline V1 schema](references/outline-schema.md) and [the outline workflow](references/outline-workflow.md) before writing. The schema contains complete examples and MCP argument shapes; the [machine contract](references/doe-outline-v1.schema.json) and [additional examples](references/doe-outline-v1.examples.json) are also included. Generate outline content with the user's own agent. Show and obtain approval for the specific project or outline version before saving. Replacing a draft creates a new selected version and preserves history; expectedOutline must contain the observed version/revision, or null only for an observed empty project. Missing currentOutline is a server version mismatch.
+Complete the mandatory reading of [Outline Schema](references/outline-schema.md) AND [Outline Design Prompt](references/outline-design.md), then follow [the outline workflow](references/outline-workflow.md). The schema contains complete examples and MCP argument shapes; the [machine contract](references/doe-outline-v1.schema.json) and [additional examples](references/doe-outline-v1.examples.json) are also included. Generate outline content with the user's own agent according to both references. Show and obtain approval for the specific project or outline version before saving. Replacing a draft creates a new selected version and preserves history; expectedOutline must contain the observed version/revision, or null only for an observed empty project. Missing currentOutline is a server version mismatch.
 
 Before generating an image, ask whether to use the user's own tools/files or Yrkie's paid generation. Read [the image workflow](references/image-workflow.md) for source choice, reviewing actual images, background removal, upload permission and platform billing. Use actual upload receipts as references; never invent them. The server uploads approved images without generation charges or automatic background removal. GENRATEIMG plans execute only after final confirmation.
 
@@ -27,7 +43,7 @@ Each intended write uses one UUID. Identical uncertain retries keep the UUID, fi
 
 ## Create, edit and delete slides
 
-Read [the complete Slide schema](references/slide-schema.md) before authoring, and [the Slide workflow](references/slide-workflow.md) for exact approval, version, page-count, image and retry rules. The schema distinguishes the full Root in create arguments from the complete Slide in page-edit arguments. Read existing pages with includeSchema when editing, preserving the returned identity and unrelated content.
+Before creating or editing content, complete the mandatory reading of [Slide Schema](references/slide-schema.md) AND [Slide Design Prompt](references/slide-design.md). Follow [the Slide workflow](references/slide-workflow.md) for exact approval, version, page-count, image, deletion and retry rules. The schema distinguishes the full Root in create arguments from the complete Slide in page-edit arguments; apply the design rules to the actual content and layout. Read existing pages with includeSchema when editing, preserving the returned identity and unrelated content.
 
 Require a confirmed outline before Slide writes. Whole-deck creation replaces all pages and must match the frozen eligible page count. Page edits preserve the existing ID and unrelated pages; deletion keeps at least one page. Obtain approval for the exact write, use current revisions, and retain the same UUID/input for uncertain identical retries. New slide permissions require explicit browser authorization.
 

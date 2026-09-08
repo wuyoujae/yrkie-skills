@@ -4,9 +4,9 @@ Use `yrkie_create_slides`, `yrkie_edit_slide` and `yrkie_delete_slide` through M
 
 ## Authoring reference and review
 
-Read [slide-schema.md](slide-schema.md) before authoring. It contains the complete Root/Slide contract, all 38 component types, examples, external validation limits and exact MCP arguments. Use this current reference for new authoring. Existing compatible pages can be read with `includeSchema=true` and edited by preserving the returned identity and changing the reviewed content.
+Before any Slide planning, drafting, regeneration, single-page edit or submission review, you MUST fully read BOTH [slide-schema.md](slide-schema.md) AND [slide-design.md](slide-design.md), including when producing only a local draft. The Schema contains the complete Root/Slide contract, all 38 component types, examples, external validation limits and exact MCP arguments. The Design Prompt governs content fidelity, component selection, composition, imagery, truthful charts and review. Apply both to the result; follow the Skill's mandatory-reading rules if a file is missing or a read is truncated. An existing compatible page from `includeSchema=true` supplies current content and identity, not a substitute for either reference.
 
-Ask for approval of the actual complete deck, page change or deletion before writing. Approval of account permissions is not approval to replace a particular deck. Already approved identical writes do not need repeated approval. A write receipt means saved content, not a rendered/exported or visually verified presentation. Layout should be reviewed in the application.
+Review an authored deck or page against both the Schema and Design Prompt before presenting it for approval or writing. Ask for approval of the actual complete deck, page change or deletion before writing. Approval of account permissions is not approval to replace a particular deck. Already approved identical writes do not need repeated approval. A write receipt means saved content, not a rendered/exported or visually verified presentation. Layout should be reviewed in the application.
 
 ## Create or regenerate the complete deck
 

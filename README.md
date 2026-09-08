@@ -1,3 +1,9 @@
+# 本地更新：Design Prompt 与必读规则（待发布）
+
+Skill 新增 `references/outline-design.md` 与 `references/slide-design.md`，原样收录用户为本地 Agent 编写的设计规范。入口最前面的必读表要求：Outline 创作/修改/提交审阅前完整阅读 Outline Schema 和 Design；Slide 创作/重建/单页编辑/提交审阅前完整阅读 Slide Schema 和 Design；完整制作流程在写 Outline 前先读齐四份。
+
+文件缺失或读取截断时先补齐，不能凭旧版本记忆或已有 JSON 代替。Schema 管语法与支持范围，Design 管内容和设计，交付前按两份文件检查实际稿件。普通只读查询不加载无关作者资源；更新时同步完整 Skill 文件夹及 references，不能只复制 SKILL.md。GitHub v0.7.0 不包含这次新增的两个 Design 文件。
+
 # 0.7.0 完整 Outline 与 Slide 作者 Schema
 
 随 Skill 分发完整 `references/outline-schema.md` 和 `references/slide-schema.md`：Outline 包含 V1 字段、图片计划、上传素材、版本与确认流程；Slide 包含完整 Root/Slide、主题、画布、布局、背景、38 类组件及 MCP 参数示例。用户自己的 Agent 可以读取相应规范完成创作，服务端继续执行严格校验。

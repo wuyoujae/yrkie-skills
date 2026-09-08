@@ -27,3 +27,23 @@ test('skill includes component contract without platform HTTP routes',()=>{
   assert.match(schema,/version: 4/);
   assert.doesNotMatch(skill+schema,/\/api\/|https?:\/\/|curl\s|fetch\(/);
 });
+
+test('the self-contained skill includes both complete Schema and Design pairs',()=>{
+  const root=new URL('../skills/yrkie-account/',import.meta.url);
+  const visited=new Set();
+  function readReference(file) {
+    assert.ok(file.href.startsWith(root.href),'Skill references must stay inside the installed folder');
+    if(visited.has(file.href))return;
+    visited.add(file.href);
+    const content=readFileSync(file,'utf8');
+    if(!file.pathname.endsWith('.md'))return;
+    for(const match of content.matchAll(/\]\(([^\s)#]+)(?:#[^)]*)?\)/g)) {
+      if(/^[a-z]+:/i.test(match[1]))continue;
+      readReference(new URL(match[1],file));
+    }
+  }
+  readReference(new URL('SKILL.md',root));
+  for(const file of ['outline-schema.md','outline-design.md','slide-schema.md','slide-design.md']) {
+    assert.ok(visited.has(new URL('references/'+file,root).href),file+' must be reachable from SKILL.md');
+  }
+});
