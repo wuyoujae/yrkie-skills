@@ -1,7 +1,7 @@
 {
   "name": "yrkie",
-  "version": "0.5.0",
-  "description": "Read Yrkie content, create DOE projects and outlines, upload approved private images, and confirm outlines with explicitly approved platform image generation.",
+  "version": "0.6.0",
+  "description": "Read Yrkie content, create DOE projects and outlines, upload approved private images, confirm outlines with explicitly approved platform image generation, and create, edit or delete DOE slides after review.",
   "author": {
     "name": "Yrkie"
   },

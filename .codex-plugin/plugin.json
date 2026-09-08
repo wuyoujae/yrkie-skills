@@ -1,7 +1,7 @@
 {
   "name": "yrkie",
-  "version": "0.5.0",
-  "description": "Read Yrkie content, create DOE projects and outlines, upload approved private images, and confirm outlines with explicitly approved platform image generation.",
+  "version": "0.6.0",
+  "description": "Read Yrkie content, create DOE projects and outlines, upload approved private images, confirm outlines with explicitly approved platform image generation, and create, edit or delete DOE slides after review.",
   "author": {
     "name": "Yrkie"
   },
@@ -21,6 +21,6 @@
     "defaultPrompt": [
       "How many projects do I have in Yrkie?"
     ],
-    "longDescription": "Connect with explicit, revocable permission to read projects and content, create DOE projects and save new outline versions while preserving history. Your own agent authors the content. Outline confirmation, Slide editing and export are not included."
+    "longDescription": "Connect with explicit, revocable permission to read projects and content, create DOE projects and save new outline versions while preserving history. Your own agent authors the content. Upload approved images, confirm outlines with explicit paid-image approval, and create, edit or delete DOE slides after review. Export is not included."
   }
 }

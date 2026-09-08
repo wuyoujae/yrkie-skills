@@ -1,3 +1,4 @@
+import { currentDeckSchema,slideDocumentSchema,slideRevisionSchema,slideWriteResultSchema } from './slideContracts.js';
 import { readApprovedImage,LocalImageError } from './localImage.js';
 import { imageTypeSchema,imageRatioSchema,confirmationRefSchema,uploadResultSchema,preparationSchema,confirmationResultSchema,imageStatusSchema } from './imageContracts.js';
 import * as z from 'zod';
@@ -30,7 +31,9 @@ const SLIDE_SCOPE = READ_SCOPE + ' slides:read';
 const CREATE_SCOPE = SLIDE_SCOPE + ' projects:create outlines:create';
 const ASSET_SCOPE=CREATE_SCOPE+' images:read images:create outlines:confirm';
 const IMAGE_SCOPE=ASSET_SCOPE+' images:generate';
-const scopeSchema = z.enum(['projects:count', READ_SCOPE, SLIDE_SCOPE, CREATE_SCOPE, ASSET_SCOPE, IMAGE_SCOPE]);
+const SLIDE_WRITE_SCOPE=ASSET_SCOPE+' slides:create slides:edit slides:delete';
+const SLIDE_IMAGE_WRITE_SCOPE=IMAGE_SCOPE+' slides:create slides:edit slides:delete';
+const scopeSchema = z.enum(['projects:count', READ_SCOPE, SLIDE_SCOPE, CREATE_SCOPE, ASSET_SCOPE, IMAGE_SCOPE, SLIDE_WRITE_SCOPE, SLIDE_IMAGE_WRITE_SCOPE]);
 const tokenSchema = z.object({access_token: z.string().regex(/^yrk_plugin_[a-f0-9]{64}$/), token_type: z.literal('Bearer'), scope: scopeSchema, expires_in:z.number().int().positive()});
 const accountSchema = z.object({displayName:z.string().max(256),email:z.string().max(320),scope:scopeSchema});
 const countSchema = z.object({count:z.number().int().nonnegative().safe(),scope:z.literal('library'),asOf:z.string().datetime({offset:true})});
@@ -40,11 +43,11 @@ const projectsSchema = z.object({projects:z.array(z.object({projectRef:projectRe
 const currentOutlineSchema = z.object({version:z.number().int().positive().safe(),revision:z.number().int().positive().safe(),status:z.enum(['draft','confirmed'])}).nullable();
 export const expectedOutlineSchema = z.object({version:z.number().int().positive().safe(),revision:z.number().int().positive().safe()}).strict().nullable();
 export const requestIdSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-const infoSchema = z.object({projectRef:projectRefSchema,title:titleSchema,projectType:z.enum(['presentation','social-card','visual','other']),slideCount:z.number().int().nonnegative().safe(),outlinePageCount:z.number().int().min(0).max(200).nullable(),outlineStatus:z.enum(['none','draft','confirmed']),currentOutline:currentOutlineSchema.optional()});
-const outlineSchema = z.object({projectRef:projectRefSchema,title:titleSchema,markdown:z.string().max(120000),currentOutline:currentOutlineSchema.optional()});
+const infoSchema = z.object({projectRef:projectRefSchema,title:titleSchema,projectType:z.enum(['presentation','social-card','visual','other']),slideCount:z.number().int().nonnegative().safe(),outlinePageCount:z.number().int().min(0).max(200).nullable(),outlineStatus:z.enum(['none','draft','confirmed']),currentOutline:currentOutlineSchema.optional(),currentDeck:currentDeckSchema.optional()});
+const outlineSchema = z.object({projectRef:projectRefSchema,title:titleSchema,markdown:z.string().max(120000),currentOutline:currentOutlineSchema.optional(),currentDeck:currentDeckSchema.optional()});
 const diagnosticSchema = z.object({message:z.string().max(800),issues:z.array(z.object({path:z.string().max(160).regex(/^(\/[A-Za-z0-9_]+)*$/),code:z.string().max(60).regex(/^[a-z_]+$/),message:z.string().max(800),hint:z.string().max(1000)})).max(50),truncated:z.boolean(),line:z.number().int().nonnegative().optional(),column:z.number().int().nonnegative().optional()});
 const knownErrors = new Set(['asset_unavailable','asset_metadata_conflict','image_capacity_reached','upload_in_progress','images_not_failed','confirmation_expired','confirmation_changed','paid_generation_not_approved','insufficient_credits','image_service_unavailable','confirmation_preview_too_large','authorization_pending','slow_down','access_denied','expired_token','invalid_grant','invalid_token','invalid_client','invalid_scope','device_limit','rate_limited','temporarily_unavailable','insufficient_scope','project_reference_expired_or_unavailable','reference_capacity_reached','project_search_too_broad','outline_not_found','outline_unavailable','outline_too_large','slide_format_unsupported','slides_not_found','slide_page_out_of_range','slide_unavailable','slide_too_large','slide_revision_conflict','invalid_request']);
-for(const code of ['validation_failed','invalid_json','request_too_large','outline_conflict','outline_confirmed','idempotency_conflict','project_format_unsupported'])knownErrors.add(code);
+for(const code of ['outline_not_confirmed','outline_images_not_ready','last_slide_required','slide_schema_unavailable','validation_failed','invalid_json','request_too_large','outline_conflict','outline_confirmed','idempotency_conflict','project_format_unsupported'])knownErrors.add(code);
 
 export class YrkieClient {
   readonly origin: string;
@@ -89,7 +92,7 @@ export class YrkieClient {
     if(await this.credentials.read())throw new PluginError('already_bound');
     await this.credentials.check();
     if(this.pending && this.now()<this.pending.expires)return this.bindingInfo();
-    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:IMAGE_SCOPE,agent_name:agentName}));
+    const device=this.parse(deviceSchema,await this.request('/api/plugin/oauth/device_authorization',{client_id:'yrkie-agent-plugin',scope:SLIDE_IMAGE_WRITE_SCOPE,agent_name:agentName}));
     if(device.verification_uri!==this.origin+'/plugin/authorize')throw new PluginError('invalid_response');
     if(device.verification_uri_complete) {
       const expected=this.origin+'/plugin/authorize#request=';
@@ -146,13 +149,19 @@ export class YrkieClient {
     const ref=this.parse(projectRefSchema,projectRef);
     return this.parse(outlineSchema,await this.request(`/api/plugin/v1/projects/${ref}/outline`,undefined,await this.token(),'GET',1048576));
   }
-  async projectSlide(projectRef: string, pageNumber: number, expectedRevision?: number) {
+  async projectSlide(projectRef: string, pageNumber: number, expectedRevision?: number, includeSchema=false) {
     const ref=this.parse(projectRefSchema,projectRef);
     const page=this.parse(z.number().int().positive().safe(),pageNumber);
     if(expectedRevision!==undefined)this.parse(z.number().int().positive().safe(),expectedRevision);
-    const query=expectedRevision===undefined?'':`?expectedRevision=${expectedRevision}`;
-    const schema=z.object({projectRef:projectRefSchema,title:titleSchema,pageNumber:z.number().int().positive().safe(),totalSlides:z.number().int().min(1).max(200),revision:z.number().int().positive().safe(),markdown:z.string().refine(v=>Buffer.byteLength(v,'utf8')<=120000)});
-    const result=this.parse(schema,await this.request(`/api/plugin/v1/projects/${ref}/slides/${page}${query}`,undefined,await this.token(),'GET',1048576));
+    this.parse(z.boolean(),includeSchema);
+    const search=new URLSearchParams();
+    if(expectedRevision!==undefined)search.set('expectedRevision',String(expectedRevision));
+    if(includeSchema)search.set('includeSchema','true');
+    const query=search.size?`?${search}`:'';
+    const schema=z.object({projectRef:projectRefSchema,title:titleSchema,pageNumber:z.number().int().positive().safe(),totalSlides:z.number().int().min(1).max(200),revision:z.number().int().positive().safe(),markdown:z.string().refine(v=>Buffer.byteLength(v,'utf8')<=120000),slide:slideDocumentSchema.optional()});
+    const result=this.parse(schema,await this.request(`/api/plugin/v1/projects/${ref}/slides/${page}${query}`,undefined,await this.token(),'GET',includeSchema?3*1024*1024:1048576));
+    if(includeSchema&&!result.slide)throw new PluginError('invalid_response');
+    if(!includeSchema)delete result.slide;
     if(result.projectRef!==ref || result.pageNumber!==page || page>result.totalSlides || (expectedRevision!==undefined && result.revision!==expectedRevision))throw new PluginError('invalid_response');
     return result;
   }
@@ -202,6 +211,28 @@ export class YrkieClient {
     const ref=this.parse(projectRefSchema,projectRef);this.parse(z.number().int().positive().safe(),outlineVersion);
     const result=this.parse(imageStatusSchema,await this.request(`/api/plugin/v1/projects/${ref}/outline/${outlineVersion}/images`,undefined,await this.token(),'GET',131072));
     if(result.outlineVersion!==outlineVersion)throw new PluginError('invalid_response');return result;
+  }
+  async createSlides(projectRef:string,requestId:string,expectedRevision:number|null,expectedOutline:z.infer<typeof expectedOutlineSchema>,deck:Record<string,unknown>,acknowledgeReplace:boolean) {
+    this.parse(slideRevisionSchema.nullable(),expectedRevision);this.parse(expectedOutlineSchema.unwrap(),expectedOutline);
+    this.parse(slideDocumentSchema,deck);this.parse(z.literal(true),acknowledgeReplace);
+    return this.writeSlide('POST',projectRef,requestId,null,{expectedRevision,expectedOutline,deck,acknowledgeReplace});
+  }
+  async editSlide(projectRef:string,requestId:string,pageNumber:number,expectedRevision:number,slide:Record<string,unknown>) {
+    this.parse(slideRevisionSchema,expectedRevision);this.parse(slideDocumentSchema,slide);
+    return this.writeSlide('PUT',projectRef,requestId,pageNumber,{expectedRevision,slide});
+  }
+  async deleteSlide(projectRef:string,requestId:string,pageNumber:number,expectedRevision:number,acknowledgeDelete:boolean) {
+    this.parse(slideRevisionSchema,expectedRevision);this.parse(z.literal(true),acknowledgeDelete);
+    return this.writeSlide('DELETE',projectRef,requestId,pageNumber,{expectedRevision,acknowledgeDelete});
+  }
+  private async writeSlide(method:'POST'|'PUT'|'DELETE',projectRef:string,requestId:string,page:number|null,fields:Record<string,unknown>) {
+    const ref=this.parse(projectRefSchema,projectRef);this.parse(requestIdSchema,requestId);
+    if(page!==null)this.parse(slideRevisionSchema,page);
+    const payload={requestId,...fields};
+    if(Buffer.byteLength(JSON.stringify(payload),'utf8')>(method==='POST'?8*1024*1024:2008192))throw new PluginError('request_too_large');
+    const result=this.parse(slideWriteResultSchema,await this.request(`/api/plugin/v1/projects/${ref}/slides${page===null?'':`/${page}`}`,undefined,await this.token(),method,131072,payload));
+    if(result.requestId!==requestId||result.projectRef!==ref||result.pageNumber!==page||result.status!==({POST:'saved',PUT:'edited',DELETE:'deleted'}[method]))throw new PluginError('invalid_response');
+    return result;
   }
   async logout() {return this.exclusive(async()=>{
     const token=await this.token();

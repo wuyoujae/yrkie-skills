@@ -1,9 +1,9 @@
 ---
 name: yrkie-account
-description: Use Yrkie MCP tools to connect accounts, find Library projects, read project information, and retrieve outlines or individual DOE slides as Markdown; consult the component Schema when preparing local presentation drafts. Create DOE projects and save complete Outline V1 drafts as new versions using the user's own agent. Upload approved images and confirm reviewed outlines, including explicitly approved platform image generation. Slide creation/editing and export are not available.
+description: Use Yrkie MCP tools to connect accounts, find Library projects, read project information, and retrieve outlines or individual DOE slides as Markdown; consult the component Schema when preparing local presentation drafts. Create DOE projects and save complete Outline V1 drafts as new versions using the user's own agent. Upload approved images and confirm reviewed outlines, including explicitly approved platform image generation. Create complete DOE slide decks, edit pages and delete pages after approval. Export is not available.
 ---
 
-Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding, project and content reading, DOE projects and outline versions, approved image uploads, final outline confirmation and image status/retry.
+Use the installed Yrkie MCP tools; client prefixes may vary. This version supports account binding, project and content reading, DOE projects and outline versions, approved image uploads, final outline confirmation, image status/retry and DOE Slide creation/editing/deletion.
 
 ## Communication boundary
 
@@ -13,7 +13,7 @@ All Yrkie platform operations go through the installed MCP tools. Do not call HT
 
 When the user asks about Yrkie presentation structure or requests a local Schema draft, read [the component authoring contract](references/component-schema.md). It defines the supported components, fields, layout constraints, and a complete example. It is a data authoring reference, not platform access or permission to create a project.
 
-For account and project-reading questions, skip that reference. For a Schema draft, follow its JSON output rules only while producing that draft. For project/outline creation, read the outline reference below. Slide saving, rendering and export are not exposed in this version. Never claim a local JSON draft was saved or exported on Yrkie.
+For account and project-reading questions, skip that reference. For a Schema draft, follow its JSON output rules only while producing that draft. For project/outline creation, read the outline reference below. Slide writing follows the separate slide workflow below. Rendering and export are not exposed. Never claim a local JSON draft was saved or exported on Yrkie.
 
 ## Create projects, images and outlines
 
@@ -24,6 +24,12 @@ Before generating an image, ask whether to use the user's own tools/files or Yrk
 After saving, prepare a confirmation review and show its exact version, eligible pages, excluded pages, image plans, permanent lock and possible charges. Obtain final approval before confirming. Failed generation does not unlock an outline and can consume credits. Query actual readiness; failed paid jobs require a separately prepared and approved retry. Do not repeatedly ask permission for already approved identical content, or ask for approval of ordinary reads.
 
 Each intended write uses one UUID. Identical uncertain retries keep the UUID, file/content and prepared reference; do not create duplicate versions/jobs. A changed draft, file or fee scope requires a new review. Follow returned bounded field diagnostics. Old grants never gain image/confirmation capabilities automatically: explain any additional permissions and reconnect through browser approval when the user agrees.
+
+## Create, edit and delete slides
+
+Read [the Slide workflow](references/slide-workflow.md) for exact approval, version, page-count, image and retry rules. [slide-schema.md](references/slide-schema.md) is intentionally left for the product owner to fill; do not invent a full deck contract if it is empty. A supplied complete Schema or a compatible existing page read may be used as described in the workflow.
+
+Require a confirmed outline before Slide writes. Whole-deck creation replaces all pages and must match the frozen eligible page count. Page edits preserve the existing ID and unrelated pages; deletion keeps at least one page. Obtain approval for the exact write, use current revisions, and retain the same UUID/input for uncertain identical retries. New slide permissions require explicit browser authorization.
 
 ## MCP workflow
 
@@ -51,6 +57,6 @@ Each intended write uses one UUID. Identical uncertain retries keep the UUID, fi
 - For `rate_limited`, `plugin_unavailable`, network, or platform errors, report the problem and stop automatic retries. For `device_limit`, ask the user to revoke an unused connection on the website before retrying.
 - If the MCP tools are missing, use the repository README installation instructions. Reading this Skill alone does not connect to Yrkie.
 
-Writes are limited to DOE project/outline creation, approved image uploads, final outline confirmation and approved image retries. Slide creation/editing, export, subscription and payment remain unsupported.
+Writes include DOE project/outline creation, approved image uploads, final outline confirmation, approved image retries and DOE full-deck replacement/single-page editing/deletion. Export, subscription and payment remain unsupported.
 
 The requesting application is identified automatically from the MCP handshake. Do not ask the user for an app name. The browser displays the server-stored application and permissions before approval. Each named agent maintains a separate binding; switching to another agent may require a new approval.

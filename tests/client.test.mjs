@@ -39,7 +39,7 @@ test('count without a binding makes no request',async()=>{const s=setup();await 
 test('sends application metadata when requesting a connection',async()=>{
   const s=setup([device]); await s.client.begin('Codex');
   assert.equal(s.calls[0].options.body.get('agent_name'),'Codex');
-  assert.equal(s.calls[0].options.body.get('scope'),'projects:count projects:read outlines:read slides:read projects:create outlines:create images:read images:create outlines:confirm images:generate');
+  assert.equal(s.calls[0].options.body.get('scope'),'projects:count projects:read outlines:read slides:read projects:create outlines:create images:read images:create outlines:confirm images:generate slides:create slides:edit slides:delete');
 });
 test('zero is a valid response but errors are not zero',async()=>{
   const s=setup([{count:0,scope:'library',asOf:'2026-09-06T00:00:00Z'},{status:503,body:{error:'temporarily_unavailable'}},{count:-1,scope:'library',asOf:'today'}]);await s.store.write(token);
