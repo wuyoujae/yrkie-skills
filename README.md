@@ -1,10 +1,12 @@
-# 本地更新：Design Prompt 与必读规则（待发布）
+# Yrkie Skills & MCP 0.1.0 首个正式版本
+
+正式上线版本从 **0.1.0** 开始编号，完整包含此前开发阶段的 19 个 MCP 工具、Outline / Slide Schema、Design Prompt 和工作流。此前 0.7.0 等编号属于开发阶段记录；本次没有回退功能或降低权限要求。GitHub 最新正式发布为 `v0.1.0`，已获得完整权限的连接无需仅因本次更新重新授权，是否需要重新绑定以实际缺失的 scope 为准。
 
 Skill 新增 `references/outline-design.md` 与 `references/slide-design.md`，原样收录用户为本地 Agent 编写的设计规范。入口最前面的必读表要求：Outline 创作/修改/提交审阅前完整阅读 Outline Schema 和 Design；Slide 创作/重建/单页编辑/提交审阅前完整阅读 Slide Schema 和 Design；完整制作流程在写 Outline 前先读齐四份。
 
-文件缺失或读取截断时先补齐，不能凭旧版本记忆或已有 JSON 代替。Schema 管语法与支持范围，Design 管内容和设计，交付前按两份文件检查实际稿件。普通只读查询不加载无关作者资源；更新时同步完整 Skill 文件夹及 references，不能只复制 SKILL.md。GitHub v0.7.0 不包含这次新增的两个 Design 文件。
+文件缺失或读取截断时先补齐，不能凭旧版本记忆或已有 JSON 代替。Schema 管语法与支持范围，Design 管内容和设计，交付前按两份文件检查实际稿件。普通只读查询不加载无关作者资源；更新时同步完整 Skill 文件夹及 references，不能只复制 SKILL.md。MCP 的 Outline 创建、Slide 创建与编辑说明也明确要求完整阅读对应两份资源。
 
-# 0.7.0 完整 Outline 与 Slide 作者 Schema
+# 开发阶段 0.7.0：完整 Outline 与 Slide 作者 Schema
 
 随 Skill 分发完整 `references/outline-schema.md` 和 `references/slide-schema.md`：Outline 包含 V1 字段、图片计划、上传素材、版本与确认流程；Slide 包含完整 Root/Slide、主题、画布、布局、背景、38 类组件及 MCP 参数示例。用户自己的 Agent 可以读取相应规范完成创作，服务端继续执行严格校验。
 
@@ -14,19 +16,19 @@ Skill 入口已切换到完整作者规范，移除等待填写的提示；十�
 
 网站连接管理位于 Dashboard 账户菜单的 **Agent connections / Agent 连接** 弹层，也可从 Skills/MCP 指南进入。批准新连接仍使用 MCP 返回的完整授权链接。
 
-# 0.6.0 DOE Slide 创建、编辑与删除
+# 开发阶段 0.6.0：DOE Slide 创建、编辑与删除
 
 新增 `yrkie_create_slides`、`yrkie_edit_slide`、`yrkie_delete_slide`；现有单页读取增加 `includeSchema=true`，项目信息返回 `currentDeck`。服务器需 Core v53，旧连接须重新明确授权。创建要求已确认大纲、图片与结算就绪，页数遵守冻结授权；覆盖整稿、编辑单页、软删除及重排均有 revision 和 UUID 保护，不调用平台 Slide Agent。
 
 Slide 作者规范在 0.6.0 中预留，已于 0.7.0 填写并发布：`skills/yrkie-account/references/slide-schema.md`。操作流程独立维护在 `slide-workflow.md`。
 
-# 0.5.0 图片上传与大纲确认
+# 开发阶段 0.5.0：图片上传与大纲确认
 
 新增 `yrkie_upload_project_image`、`yrkie_prepare_outline_confirmation`、`yrkie_confirm_outline`、`yrkie_outline_image_status`、`yrkie_retry_outline_images`。配套服务器需完成 Core v52 迁移并支持图片与确认接口；旧连接必须经用户同意重新绑定以取得新权限。
 
 先选图片来源，再审阅并批准图片上传、完整大纲保存和最终确认。外部图片上传不生图、不抠图、不扣 AI 积分；平台 GENRATEIMG 在确认后按现有规则生成并收费。确认永久锁定大纲，失败调用也可能收费，重试需单独批准。详情见 Skill 中独立的 Outline Schema、图片工作流和大纲工作流。本次不提供 Slide 创建/编辑。
 
-## 0.4.0：创建 DOE 项目与 Outline
+## 开发阶段 0.4.0：创建 DOE 项目与 Outline
 
 新增 `yrkie_create_project` 与 `yrkie_create_outline`。用户自己的 Agent 按 Skill 内完整 Outline V1 Schema 生成内容，平台严格校验并保存；替换草稿会新增版本、保留历史。成功请求支持 UUID 幂等重试和版本冲突检查。
 
@@ -36,7 +38,7 @@ Slide 作者规范在 0.6.0 中预留，已于 0.7.0 填写并发布：`skills/y
 
 在支持本地 stdio MCP 的 Agent 中绑定 Yrkie 账号，查询项目数量、项目信息和 Markdown 大纲。MIT 开源，通信层不依赖 Codex、Claude Code 或任何模型 SDK。
 
-当前版本 0.7.0 提供 19 个工具，支持账号连接、项目检索、内容读取、DOE 项目/大纲创建、私有图片上传、大纲预检查与最终确认、图片状态和显式重试。支持 DOE 整稿保存、单页编辑和删除；导出及订阅支付不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
+当前正式版本 0.1.0 提供 19 个工具，支持账号连接、项目检索、内容读取、DOE 项目/大纲创建、私有图片上传、大纲预检查与最终确认、图片状态和显式重试。支持 DOE 整稿保存、单页编辑和删除；导出及订阅支付不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
 
 ## 从源码安装
 
@@ -52,7 +54,7 @@ node scripts/mcp-config.mjs
 
 最后一行输出通用 MCP JSON：把 `mcpServers.yrkie` 的 command 和 args 填入 Agent 的 MCP 配置。客户端的配置文件位置、外层字段名可能不同，以其 MCP 设置界面为准；没有统一的跨客户端插件安装目录。
 
-Skill 单独安装：把完整 `skills/yrkie-account/` 文件夹（包括 `references/`）复制到目标 Agent 的 Skill 目录，或者通过它支持的本地 Skill 导入功能加载。只支持 MCP、不支持 Skill 的客户端仍然可以使用十九个工具，但不会自动加载 Schema 教程。
+Skill 单独安装：把完整 `skills/yrkie-account/` 文件夹（包括 `references/`）复制到目标 Agent 的 Skill 目录，或者通过它支持的本地 Skill 导入功能加载。只支持 MCP、不支持 Skill 的客户端仍然可以使用十九个工具，但不会自动加载作者资源；创作前必须另外提供并完整阅读同版本的 Schema、Design 和工作流。
 
 本地开发时直接把 origin 写入生成的启动参数，重启 Agent 即可，不需要继承终端环境变量：
 
@@ -82,7 +84,7 @@ node scripts/install.mjs claude --origin http://127.0.0.1:7622
 ## 创建工作流
 
 1. 新项目调用 `yrkie_create_project(title, requestId, projectType?)`；旧项目通过检索取得 projectRef。
-2. Agent 读取 Skill 内 `references/outline-schema.md`，按原有 DOE V1 格式生成完整大纲。
+2. Agent 完整阅读 Skill 内 `references/outline-schema.md` 与 `references/outline-design.md`，按原有 DOE V1 格式生成完整大纲；完整制作任务在写大纲前还必须完整阅读 `references/slide-schema.md` 与 `references/slide-design.md`。
 3. 读取项目概况的 `currentOutline`，无稿传 `expectedOutline: null`，有草稿传其中 version/revision。
 4. 调用 `yrkie_create_outline(projectRef, requestId, expectedOutline, outline)`，成功返回新版本、revision 和当前状态。已确认稿拒绝替换。
 5. 按独立图片工作流先确定来源与抠图需求，取得最终图片上传同意；保存大纲后准备确认，展示页数范围、锁定和费用，经批准后最终确认。
@@ -98,7 +100,7 @@ node scripts/install.mjs claude --origin http://127.0.0.1:7622
 
 不要把密码、网站 Cookie 或访问凭据贴进聊天。项目数与 Library 一致：统计所有项目类型，排除已删除和归档项目；平台错误不会返回假造的 0。
 
-当前新授权包含原读取/创建权限、图片上传与大纲确认权限、明确同意的收费生图，以及 `slides:create slides:edit slides:delete`。网页完整展示读取作者 Schema、覆盖整稿、编辑与删除页面的权限。0.3.0 及更早授权仍可使用原工具，创建功能需重新授权。旧的 count-only 授权继续只能计数，访问新功能时返回 `insufficient_scope`，需用户同意重新绑定。授权有效期 30 天，每个账号最多 20 个有效授权。可以对 Agent 说“解绑 Yrkie”，或在 Dashboard 账户菜单的 **Agent connections / Agent 连接** 弹层中撤销。凭据按服务地址和 Agent 名称隔离，Codex 与 Claude Code 分别授权和解绑。
+当前新授权包含原读取/创建权限、图片上传与大纲确认权限、明确同意的收费生图，以及 `slides:create slides:edit slides:delete`。网页完整展示读取作者 Schema、覆盖整稿、编辑与删除页面的权限。开发阶段的旧授权保留原有权限；缺少创建、图片、确认或 Slide 写入权限时，需经用户同意重新绑定，不能按重新编号后的版本号推断权限。旧的 count-only 授权继续只能计数，访问新功能时返回 `insufficient_scope`，需用户同意重新绑定。授权有效期 30 天，每个账号最多 20 个有效授权。可以对 Agent 说“解绑 Yrkie”，或在 Dashboard 账户菜单的 **Agent connections / Agent 连接** 弹层中撤销。凭据按服务地址和 Agent 名称隔离，Codex 与 Claude Code 分别授权和解绑。
 
 连接后可以说：**“帮我看看我的「季度复盘」项目的大纲是什么？”** Agent 会先按名称检索项目，再使用返回的临时 `projectRef` 读取。引用固定 4 小时有效，只能用于当前授权；失效后重新检索。它不含数据库 ID，单独获得引用也不能访问项目。项目概况区分实际 Slide 数和大纲页数；大纲由平台转为 Markdown，不返回原始结构或素材链接。重复标题需要用户确认。
 
@@ -106,7 +108,7 @@ node scripts/install.mjs claude --origin http://127.0.0.1:7622
 
 Skill 保存组件 Schema 和 MCP 工作流，所有平台操作必须通过 MCP。Skill 不包含平台 HTTP 路由、请求方法或直接调用脚本；工具缺失时不能通过读取客户端源码、curl 或浏览器脚本绕过 MCP。Schema 参考按需加载，查询账号和项目数量时无需读取。
 
-完整 Outline V1 作者合同、机器 Schema 与五个额外示例独立维护；完整 Slide 作者规范位于 `references/slide-schema.md`，旧组件合同仅供历史对照。按当前操作读取所需规范，无需在查询项目数量时加载全部 Schema。经工具成功保存的内容才能称为已入库，渲染仍需在应用中检查。
+完整 Outline V1 作者合同、机器 Schema 与五个额外示例独立维护；完整 Slide 作者规范位于 `references/slide-schema.md`，旧组件合同仅供历史对照。创作或编辑前必须完整阅读对应 Schema 与 Design Prompt，完整制作流程先读齐四份；查询项目数量时无需加载作者资源。经工具成功保存的内容才能称为已入库，渲染仍需在应用中检查。
 
 开源 MCP 客户端里的请求路径可以被查看，不能把隐藏路径当作安全边界。权限、身份、数量限制和后续收费权益必须在平台强制执行。
 
@@ -149,15 +151,15 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 
 参考：[MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk)、[系统凭据库](https://github.com/Brooooooklyn/keyring-node)、[Codex MCP](https://developers.openai.com/codex/mcp)、[Claude Code 插件](https://code.claude.com/docs/en/plugins-reference)、[设备授权协议](https://www.rfc-editor.org/rfc/rfc8628)。
 
-### 0.1.2 授权入口
+### 开发阶段 0.1.2：授权入口
 
 只使用 MCP 返回的完整授权链接。缺少请求的普通账户页面用于管理授权，不接受手填码，也不能直接批准连接。服务端必须提供完整链接；旧版本不再静默降级为短码。更新后重新构建、同步完整 Skill 并重启 MCP 进程。
 
-### 0.1.3 按应用授权
+### 开发阶段 0.1.3：按应用授权
 
 MCP 自动从客户端初始化握手读取应用名；用户无需填写名称或确认码。服务器保存名称并签发一次性链接，网页要求登录后读取待授权请求，显示“是否授权 Codex / Claude Code / 对应 Agent”，点击授权后 MCP 才能兑换凭据。过期或已用链接不能再授权。名称来自客户端自报信息，用于展示而非厂商身份认证。无法提供名称的客户端显示 AI Agent。
 
-### 0.3.0 DOE 单页读取（历史功能，后续版本保留）
+### 开发阶段 0.3.0：DOE 单页读取（历史功能，正式版保留）
 
 可以说“阅读「季度复盘」第 3 页的 Slide 内容”。返回项目标题、页码、总页数、稿件 revision 和 Markdown；按页与组件分组保留正文、条目、表格、图表数值、代码和公式。图片只提供已有说明，未知组件明确标记省略，不读取演讲备注，不返回原 JSON 或素材地址。
 
