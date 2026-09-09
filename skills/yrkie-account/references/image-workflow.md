@@ -6,7 +6,7 @@ Read this before producing an outline containing images. For exact field and mar
 
 Ask whether the user wants their own agent/tools or supplied files, or Yrkie platform image generation using their Yrkie credits. A concrete list can mix sources. Explain which images use which source and obtain approval before producing or processing images. The user's own image tools may have their own fees; do not promise they are free.
 
-Yrkie `GENRATEIMG` runs only after final outline confirmation. `content` generates a subject and removes its green background; `decorative` preserves a complete scene. It is not an endpoint for removing the background of an existing photo while preserving that exact subject. To preserve an uploaded original, process it with the user's own tools first.
+Yrkie `GENRATEIMG` runs only after final outline confirmation. `content` generates a subject and removes its green background; `decorative` preserves the image background, for scenes or ornaments. Neither type selects a Slide background or layout automatically. It is not an endpoint for removing the background of an existing photo while preserving that exact subject. To preserve an uploaded original, process it with the user's own tools first.
 
 ## User files or images made by their agent
 

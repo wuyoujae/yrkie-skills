@@ -27,7 +27,7 @@ All Yrkie platform operations go through the installed MCP tools. Do not call HT
 
 ## Authoring references
 
-The paired references above are the required authoring source. The Slide Schema covers metadata, theme, canvas, backgrounds, layouts and all 38 component types; its Design Prompt explains how to select and compose them for the approved content. The [older component reference](references/component-schema.md) remains for historical comparison and never replaces either required file.
+The paired references above are the required authoring source. The Slide Schema covers metadata, theme, canvas, backgrounds, layouts and all 39 component types under authoring contract 18; its Design Prompt explains how to select and compose them for the approved content. The [older component reference](references/component-schema.md) remains for historical comparison and never replaces either required file.
 
 For account and project-reading questions, skip authoring references. Follow Schema JSON output rules only while producing a draft. Saving follows the separate workflows below and requires user approval; a local draft is not proof of platform access or saved content. Rendering and export are not exposed.
 

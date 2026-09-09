@@ -11,7 +11,7 @@ import { agentName } from './clientIdentity.js';
 async function main() {
   const {values}=parseArgs({options:{origin:{type:'string'}}});
   const origin=parseOrigin(values.origin || process.env.YRKIE_ORIGIN || 'https://yrkie.com');
-  const server=new McpServer({name:'yrkie',version:'0.1.0'});
+  const server=new McpServer({name:'yrkie',version:'0.1.1'});
   let client: YrkieClient | undefined;
   const application=()=>agentName(server.server.getClientVersion()?.name);
   const account=()=>client ??= new YrkieClient(origin,systemCredentials(origin,application()));

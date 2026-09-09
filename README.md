@@ -1,6 +1,8 @@
-# Yrkie Skills & MCP 0.1.0 首个正式版本
+# Yrkie Skills & MCP 0.1.1
 
-正式上线版本从 **0.1.0** 开始编号，完整包含此前开发阶段的 19 个 MCP 工具、Outline / Slide Schema、Design Prompt 和工作流。此前 0.7.0 等编号属于开发阶段记录；本次没有回退功能或降低权限要求。GitHub 最新正式发布为 `v0.1.0`，已获得完整权限的连接无需仅因本次更新重新授权，是否需要重新绑定以实际缺失的 scope 为准。
+正式上线版本从 **0.1.0** 开始编号，完整包含此前开发阶段的 19 个 MCP 工具、Outline / Slide Schema、Design Prompt 和工作流。此前 0.7.0 等编号属于开发阶段记录。当前正式补丁版为 **0.1.1**，已获得完整权限的连接无需仅因本次更新重新授权，是否需要重新绑定以实际缺失的 scope 为准。
+
+0.1.1 同步当前 Slide 作者合同 18（wire version 4、39 类组件），包含统一 `contents` 集合、精确字段路径及布局容量规则；配套 Slide Design 补充集合展示选择、字段保留和跨组件重复检查。对象/数组字段不得再次序列化成 JSON 字符串；`notice` 不得位于 `composition` 的任何后代层级；decorative 图片保留背景，但不自动选择 Slide 背景或布局。机器 Outline Schema 的 GENRATEIMG 示例改为可直接解析的单值写法。两份 Design 与源文件一致，继续完整分发；Schema + Design 全文必读规则、19 个工具的参数及权限保持。平台需支持作者合同 18。更新时同步整个 Skill 文件夹，不能只更新 MCP 代码或单份 Schema。
 
 Skill 新增 `references/outline-design.md` 与 `references/slide-design.md`，原样收录用户为本地 Agent 编写的设计规范。入口最前面的必读表要求：Outline 创作/修改/提交审阅前完整阅读 Outline Schema 和 Design；Slide 创作/重建/单页编辑/提交审阅前完整阅读 Slide Schema 和 Design；完整制作流程在写 Outline 前先读齐四份。
 
@@ -38,7 +40,7 @@ Slide 作者规范在 0.6.0 中预留，已于 0.7.0 填写并发布：`skills/y
 
 在支持本地 stdio MCP 的 Agent 中绑定 Yrkie 账号，查询项目数量、项目信息和 Markdown 大纲。MIT 开源，通信层不依赖 Codex、Claude Code 或任何模型 SDK。
 
-当前正式版本 0.1.0 提供 19 个工具，支持账号连接、项目检索、内容读取、DOE 项目/大纲创建、私有图片上传、大纲预检查与最终确认、图片状态和显式重试。支持 DOE 整稿保存、单页编辑和删除；导出及订阅支付不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
+当前正式版本 0.1.1 提供 19 个工具，支持账号连接、项目检索、内容读取、DOE 项目/大纲创建、私有图片上传、大纲预检查与最终确认、图片状态和显式重试。支持 DOE 整稿保存、单页编辑和删除；导出及订阅支付不在此版本中。平台必须部署并启用对应接口，安装插件本身不会启用服务端功能。
 
 ## 从源码安装
 

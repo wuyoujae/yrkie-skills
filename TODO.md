@@ -1,3 +1,12 @@
+# 0.1.1 作者参考更新（2026-09-09）
+
+发布用户已完成的 Schema 组合兼容、字段序列化和图片语义修订，原样同步当前 Slide 作者合同 18 / 39 类组件；Slide Design 补齐 contents 设计规则并与外部源文件保持一致，保留四份必读资源。仅更新独立插件 GitHub 发布，不切换用户本机连接或部署平台。
+
+- [x] 核对分发目录和外部源文件差异，补齐合同 18、contents、精确字段路径和布局容量说明；同步 Design 与入口中的组件范围。
+- [x] 统一 npm、锁文件、两类插件清单和 MCP 握手为 0.1.1，更新 README。
+- [x] 最终合同 18 / Design 版本通过 47 项插件回归、11 个 JSON 示例及 TypeScript 类型、Skill/11 份引用检查、MCP 0.1.1 / 19 工具握手；四份资源 LF/CRLF 均低于 10,000 tokens。Outline 仅排版不同，Slide Schema 和两份 Design 与源文件字节一致。
+- [x] 完成 main / v0.1.1 / GitHub Latest 发布准备；远端回读作为发布结果依据，保留 0.1.0 标签。
+
 # 0.1.0 首个正式版本（2026-09-08）
 
 用户确认正式上线从 0.1.0 开始编号；包含此前全部 19 个 MCP 工具及四份 Schema / Design，开发版本历史保留。发布目标为独立仓库 main、v0.1.0 标签与 GitHub Latest Release；不涉及平台部署或 npm/插件市场发布。
@@ -132,3 +141,16 @@
 - [x] MCP 真实 stdio 协议、参数/输出校验、失败脱敏及完整 Schema 引用测试。
 - [x] 完成本地浏览器到 MCP 的读取验收：Codex/Claude Code 协议身份、最小权限 Web、项目概况、Markdown 大纲及解绑。
 - 版本：0.2.0；生产服务仍需单独部署。
+
+## Schema 组合兼容性复核（2026-09-08）
+
+与平台作者参考同步本次已确认的语法/字段说明修复；当时未修改工具或发布版本，后续纳入正式版 0.1.1。
+
+- [x] Slide Schema 补充 notice 在 composition 任意后代层级均不兼容及合法替代结构。
+- [x] Outline Schema / 图片工作流澄清 decorative 保留背景，并不自动指定 Slide 背景布局。
+- [x] 机器 Outline Schema 将枚举拼接形式改为可直接解析的 GENRATEIMG 示例。
+- [x] 复核与平台参考的内容一致性、JSON 与文档示例、Token 预算；不向用户项目提交写入。
+
+验收：本地 `config.test.mjs` / `writes.test.mjs` 9 项通过；两对参考内容一致，机器 Schema 一致。插件 Slide LF/CRLF 为 9,943/10,000 tokens，Outline 为 5,036/5,043。当时未提交或发布新插件版本；0.1.1 发布验证见本文顶部。
+
+- [x] 后续同步第二页 props 二次序列化的防误用说明：对象/数组不能编码成字符串，工具参数保持真实字段类型。与平台 Skills 源参考正文一致，Slide token 数保持 9,943/10,000；纳入 0.1.1。

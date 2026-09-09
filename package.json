@@ -1,6 +1,6 @@
 {
   "name": "yrkie-agent-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Use complete Outline and Slide Schemas and Design Prompts to author DOE projects with your own agent, read saved content, manage approved images and outlines, and create, edit or delete slides through Yrkie MCP.",
   "type": "module",
   "private": true,
